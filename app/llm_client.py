@@ -65,6 +65,20 @@ _INVISIBLE_CHARS = "​‌‍⁠﻿"
 
 _runtime_api_key: str | None = None
 
+# per-request Key（FastAPI 多用户并发支持，前后端分离改造新增）：
+# Streamlit 时代 _runtime_api_key 是模块级单例，多用户并发会互相串 Key。
+# contextvars 是 asyncio 安全的请求级存储，FastAPI 层在请求入口注入，
+# 业务模块零改动；未设置时回退 _runtime_api_key（Streamlit 兼容路径）。
+import contextvars as _contextvars
+
+_request_api_key: _contextvars.ContextVar[str | None] = _contextvars.ContextVar(
+    "request_api_key", default=None)
+
+
+def set_request_api_key(key: str | None) -> None:
+    """在当前请求上下文中注入用户 Key（FastAPI 依赖注入用）。"""
+    _request_api_key.set(key.strip() if key and key.strip() else None)
+
 
 def set_runtime_api_key(key: str | None) -> None:
     """注入用户自带 Key（BYOK）。传 None 或空串则回退到团队 Key。
@@ -78,13 +92,13 @@ def set_runtime_api_key(key: str | None) -> None:
 
 
 def _effective_api_key() -> str:
-    """返回当前生效的 Key：用户自带优先，其次团队 .env 配置。"""
-    return _runtime_api_key or config.DEEPSEEK_API_KEY
+    """返回当前生效的 Key：请求级上下文 > 会话级（Streamlit）> 团队 .env。"""
+    return _request_api_key.get() or _runtime_api_key or config.DEEPSEEK_API_KEY
 
 
 def has_runtime_key() -> bool:
-    """用户是否已在会话中注入自带 Key（main.py 强制 BYOK 检查用）。"""
-    return _runtime_api_key is not None
+    """用户是否已注入自带 Key（请求级或会话级；强制 BYOK 检查用）。"""
+    return _request_api_key.get() is not None or _runtime_api_key is not None
 
 
 # ---------------------------------------------------------------------------

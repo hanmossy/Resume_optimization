@@ -90,9 +90,10 @@ def main() -> None:
     ssh.connect(HOST, username=USER, password=PASSWORD, timeout=15)
     print("✅ SSH 连接成功")
 
-    # 1) 系统依赖（阿里云 Ubuntu：python3-venv + pip）
-    run(ssh, "apt-get update -qq", timeout=300)
-    run(ssh, "apt-get install -y -qq python3-venv python3-pip", timeout=300)
+    # 1) 系统依赖（Alibaba Cloud Linux 3：dnf 包管理；系统自带 Python 3.6 太老，
+    #    Streamlit 需要 ≥3.9，官方源装 python3.11）
+    run(ssh, "dnf install -y -q python3.11 python3.11-pip", timeout=300)
+    run(ssh, "python3.11 --version")
 
     # 2) 上传文件
     sftp = ssh.open_sftp()
@@ -114,7 +115,7 @@ def main() -> None:
     run(ssh, f"sed -i 's/__ACCESS_PASSWORD__/{ACCESS_PASSWORD}/' {REMOTE_ROOT}/jlfd-assistant.service")
 
     # 4) Python 虚拟环境 + 依赖（阿里云内网 PyPI 镜像加速）
-    run(ssh, f"python3 -m venv {REMOTE_ROOT}/venv", timeout=180)
+    run(ssh, f"python3.11 -m venv {REMOTE_ROOT}/venv", timeout=180)
     run(ssh, f"{REMOTE_ROOT}/venv/bin/pip install -q -i https://mirrors.aliyun.com/pypi/simple/ "
              f"-r {REMOTE_ROOT}/requirements.txt", timeout=600)
     print("✅ 依赖安装完成")

@@ -144,6 +144,26 @@ def _combine_legacy_fields(data: dict) -> None:
     data["projects"] = [_entry_to_legacy_line(e) for e in data.get("project_entries", [])]
 
 
+def _normalize_newlines(text: str) -> str:
+    """把换行符统一为 LF（\\n）。
+
+    为什么必须收敛（Web 版联调发现的 P0 回归）：
+        - 浏览器表单提交会按 HTML 规范把文本域换行改为 CRLF；
+        - Windows 上的 TXT 文件本身常带 CRLF（read_txt_file 直接 decode，不转译）；
+        - 预热脚本走 Path.read_text（universal newlines），得到的是 LF。
+        gap_rewrite 的缓存键对 dict 载荷**保留空白**（见 llm_client.normalize_content），
+        raw_text 里 \\r\\n 与 \\n 会生成不同缓存键——表现为"诊断命中、改写 CacheMiss"。
+        在结构化入口统一换行后，PDF / TXT / 粘贴三条通道与预热口径完全一致。
+
+    Args:
+        text: 任意来源的简历原文。
+
+    Returns:
+        换行符统一为 LF 的文本（幂等，重复调用无副作用）。
+    """
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def structure_resume(raw_text: str, photo_bytes: bytes | None = None) -> ResumeData:
     """调用 LLM 把简历原文结构化为 ResumeData（v2 富结构）。
 
@@ -159,6 +179,7 @@ def structure_resume(raw_text: str, photo_bytes: bytes | None = None) -> ResumeD
         LLMOutputError: LLM 输出业务校验失败。
         LLMUnavailableError / CacheMissError: 透传自 llm_client。
     """
+    raw_text = _normalize_newlines(raw_text)  # 换行收敛，保证缓存键与预热一致
     data = llm_client.chat("resume_extract", raw_text)
     validate_resume_data(data)
     _combine_legacy_fields(data)

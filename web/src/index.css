@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局基础：设计稿为浅色 SaaS 风格，系统字体栈保证跨平台一致 */
+body {
+  @apply bg-page text-slate-800 antialiased;
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+}
+
+/* 卡片通用样式（设计稿：白底、16px 圆角、柔和双层阴影） */
+.card {
+  @apply bg-card rounded-card shadow-card p-6;
+}
+
+/* 按钮三态（设计稿要求 hover/active） */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2
+         text-sm font-medium text-white transition
+         hover:bg-indigo-700 active:scale-[0.98] active:bg-indigo-800
+         disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200
+         bg-white px-4 py-2 text-sm font-medium text-slate-700 transition
+         hover:border-brand hover:text-brand active:scale-[0.98]
+         disabled:cursor-not-allowed disabled:opacity-50;
+}
