@@ -1,0 +1,9 @@
+# Streamlit Cloud 部署配置（仅 deploy/streamlit-cloud 分支维护，main 分支不合并此文件）
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#1f77b4"
