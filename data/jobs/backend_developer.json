@@ -1,0 +1,55 @@
+{
+  "job_id": "backend_developer",
+  "job_title": "后端开发实习生",
+  "company_type": "互联网",
+  "responsibilities": [
+    "参与业务系统后端接口开发与维护",
+    "协助进行代码测试与文档编写"
+  ],
+  "abilities": [
+    {
+      "name": "至少一门后端语言",
+      "category": "硬技能",
+      "importance": 5,
+      "importance_source": "人工核定",
+      "evidence": "熟悉 Java/Go/Python 中至少一门"
+    },
+    {
+      "name": "数据结构与算法",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "掌握常见数据结构与算法"
+    },
+    {
+      "name": "数据库基础",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟悉 MySQL 等关系型数据库"
+    },
+    {
+      "name": "Linux 与 Git",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "熟悉 Linux 基本操作与 Git 协作"
+    },
+    {
+      "name": "学习与问题解决",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "能独立定位并解决问题"
+    },
+    {
+      "name": "计算机相关在读",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "计算机或相关专业在读优先"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

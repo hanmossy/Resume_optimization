@@ -1,0 +1,22 @@
+{
+  "job_id": "big4_audit",
+  "job_title": "审计实习生",
+  "company_type": "四大",
+  "responsibilities": [
+    "协助项目组完成审计底稿的编制与整理",
+    "参与函证、盘点、凭证抽查等审计程序的执行",
+    "协助进行财务数据的核对与分析性复核",
+    "完成项目组安排的其他审计支持工作"
+  ],
+  "abilities": [
+    {"name": "会计/财务基础知识", "category": "硬技能", "importance": 5, "importance_source": "人工核定", "evidence": "会计、审计、财务管理等相关专业，掌握会计准则基础知识"},
+    {"name": "Excel 操作与数据核对", "category": "硬技能", "importance": 4, "importance_source": "人工核定", "evidence": "熟练使用 Excel 进行数据处理与核对"},
+    {"name": "细心与责任心", "category": "软技能", "importance": 5, "importance_source": "人工核定", "evidence": "工作细致严谨，对数字敏感，责任心强"},
+    {"name": "抗压与适应能力", "category": "软技能", "importance": 4, "importance_source": "人工核定", "evidence": "能适应忙季高强度工作节奏，接受出差安排"},
+    {"name": "英语读写能力", "category": "硬技能", "importance": 3, "importance_source": "人工核定", "evidence": "CET-6 或同等水平，能阅读英文财务资料"},
+    {"name": "团队协作与沟通", "category": "软技能", "importance": 3, "importance_source": "人工核定", "evidence": "具备良好的团队合作精神与沟通能力"},
+    {"name": "本科在读及以上（财会类优先）", "category": "背景门槛", "importance": 4, "importance_source": "人工核定", "evidence": "全日制本科及以上学历在读，财会类专业优先"}
+  ],
+  "salary_hint": "",
+  "source_note": "依据四大会计师事务所公开招聘描述人工整理（2026-10，团队人工核验）；能力项与重要度为人工核定"
+}

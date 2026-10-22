@@ -1,0 +1,48 @@
+{
+  "job_id": "business_analysis",
+  "job_title": "商业分析实习生",
+  "company_type": "咨询",
+  "responsibilities": [
+    "协助完成市场与竞对的数据收集分析",
+    "参与商业分析报告撰写"
+  ],
+  "abilities": [
+    {
+      "name": "数据分析能力",
+      "category": "硬技能",
+      "importance": 5,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Excel，会 SQL/Python 优先"
+    },
+    {
+      "name": "研究框架思维",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "掌握基本的行业研究框架"
+    },
+    {
+      "name": "报告写作",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "能撰写结构清晰的分析报告"
+    },
+    {
+      "name": "信息检索",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用公开信息渠道获取数据"
+    },
+    {
+      "name": "本科在读及以上",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

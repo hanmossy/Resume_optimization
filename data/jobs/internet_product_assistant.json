@@ -1,0 +1,55 @@
+{
+  "job_id": "internet_product_assistant",
+  "job_title": "产品助理实习生",
+  "company_type": "互联网",
+  "responsibilities": [
+    "协助产品经理完成需求调研与竞品分析",
+    "参与产品文档撰写与需求跟进"
+  ],
+  "abilities": [
+    {
+      "name": "需求分析与文档写作",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "能撰写清晰的需求文档"
+    },
+    {
+      "name": "竞品分析能力",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "有竞品分析经验或方法论了解"
+    },
+    {
+      "name": "沟通协调",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "良好的跨团队沟通能力"
+    },
+    {
+      "name": "原型工具",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "会使用 Axure/墨刀/Figma 等原型工具优先"
+    },
+    {
+      "name": "用户同理心",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "能从用户视角思考问题"
+    },
+    {
+      "name": "本科在读及以上",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

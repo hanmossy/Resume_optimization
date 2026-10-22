@@ -1,0 +1,48 @@
+{
+  "job_id": "hr_intern",
+  "job_title": "人力资源实习生",
+  "company_type": "泛用",
+  "responsibilities": [
+    "协助招聘流程推进与简历初筛",
+    "参与员工关系与培训活动支持"
+  ],
+  "abilities": [
+    {
+      "name": "沟通协调能力",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "亲和力强，善于沟通"
+    },
+    {
+      "name": "Office 办公软件",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Office"
+    },
+    {
+      "name": "执行力与条理性",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "做事有条理，执行力强"
+    },
+    {
+      "name": "人力资源常识",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "人力资源相关专业或有兴趣者优先"
+    },
+    {
+      "name": "本科在读及以上",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

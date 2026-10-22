@@ -1,0 +1,48 @@
+{
+  "job_id": "fmcg_supply_chain",
+  "job_title": "供应链实习生",
+  "company_type": "快消",
+  "responsibilities": [
+    "协助库存与订单数据处理",
+    "参与供应链计划的基础支持工作"
+  ],
+  "abilities": [
+    {
+      "name": "数据处理能力",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Excel，会 SAP 者优先"
+    },
+    {
+      "name": "供应链常识",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "物流、供应链相关专业优先"
+    },
+    {
+      "name": "细心与责任心",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "工作细致，责任心强"
+    },
+    {
+      "name": "沟通协调",
+      "category": "软技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "能与仓储、物流多方协作"
+    },
+    {
+      "name": "本科在读及以上",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

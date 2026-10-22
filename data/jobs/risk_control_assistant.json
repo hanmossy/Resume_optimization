@@ -1,0 +1,48 @@
+{
+  "job_id": "risk_control_assistant",
+  "job_title": "风控助理实习生",
+  "company_type": "金融",
+  "responsibilities": [
+    "协助整理信贷或业务风险数据",
+    "参与风险监测报表的制作与更新"
+  ],
+  "abilities": [
+    {
+      "name": "金融与风控常识",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "了解信贷、风控基本流程"
+    },
+    {
+      "name": "数据处理能力",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Excel，会 SQL 者优先"
+    },
+    {
+      "name": "风险敏感性",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "对数据异常和风险信号敏感"
+    },
+    {
+      "name": "严谨细致",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "工作严谨，责任心强"
+    },
+    {
+      "name": "本科在读及以上",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

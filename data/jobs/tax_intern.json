@@ -1,0 +1,48 @@
+{
+  "job_id": "tax_intern",
+  "job_title": "税务实习生",
+  "company_type": "四大",
+  "responsibilities": [
+    "协助完成税务申报资料准备与数据核对",
+    "参与税务咨询项目的基础研究"
+  ],
+  "abilities": [
+    {
+      "name": "财税基础知识",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "财税相关专业，掌握税法基础"
+    },
+    {
+      "name": "Excel 操作",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Excel"
+    },
+    {
+      "name": "细心严谨",
+      "category": "软技能",
+      "importance": 5,
+      "importance_source": "人工核定",
+      "evidence": "工作细致严谨"
+    },
+    {
+      "name": "英语读写",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "CET-6 或同等水平优先"
+    },
+    {
+      "name": "本科在读及以上（财税类优先）",
+      "category": "背景门槛",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "财税类专业在读优先"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

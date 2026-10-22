@@ -1,0 +1,48 @@
+{
+  "job_id": "new_media_operation",
+  "job_title": "新媒体运营实习生",
+  "company_type": "泛用",
+  "responsibilities": [
+    "负责公众号/短视频账号内容产出",
+    "跟踪内容数据并优化选题"
+  ],
+  "abilities": [
+    {
+      "name": "文案与选题",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "具备文案写作与选题策划能力"
+    },
+    {
+      "name": "排版与工具",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "熟悉公众号排版与剪映等工具"
+    },
+    {
+      "name": "数据分析",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "能根据阅读/播放数据优化内容"
+    },
+    {
+      "name": "热点敏感",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "对热点敏感，网感好"
+    },
+    {
+      "name": "本科在读及以上",
+      "category": "背景门槛",
+      "importance": 2,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

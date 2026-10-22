@@ -1,0 +1,20 @@
+[Unit]
+Description=Resume Diagnosis Assistant (Streamlit)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/jlfd
+# 公网模式三件套：联网 + 强制 BYOK + 访问密码 + 限流
+# 注意：本服务**刻意不配置 DEEPSEEK_API_KEY**——团队 Key 零暴露，用户全部 BYOK
+Environment=PUBLIC_MODE=1
+Environment=DEMO_CACHE_MODE=0
+Environment=ACCESS_PASSWORD=__ACCESS_PASSWORD__
+Environment=PUBLIC_SESSION_QUOTA=10
+Environment=PUBLIC_GLOBAL_HOURLY_QUOTA=300
+ExecStart=/opt/jlfd/venv/bin/streamlit run app/main.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

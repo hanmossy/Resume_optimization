@@ -1,0 +1,48 @@
+{
+  "job_id": "internet_operations",
+  "job_title": "新媒体/用户运营实习生",
+  "company_type": "互联网",
+  "responsibilities": [
+    "协助内容策划与账号日常运营",
+    "参与运营数据统计与复盘"
+  ],
+  "abilities": [
+    {
+      "name": "内容策划与文案",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "具备文案写作与内容策划能力"
+    },
+    {
+      "name": "数据复盘意识",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "能用数据复盘运营效果"
+    },
+    {
+      "name": "网感与热点敏感",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟悉主流内容平台生态"
+    },
+    {
+      "name": "执行力",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "执行力强，能推进多任务并行"
+    },
+    {
+      "name": "本科在读及以上",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读"
+    }
+  ],
+  "salary_hint": "",
+  "source_note": "依据公开招聘描述人工整理（精简版，内容待团队人工核验后补充细节）"
+}

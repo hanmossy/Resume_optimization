@@ -1,0 +1,27 @@
+# 密钥与本地环境
+.env
+*.local
+
+# Python
+__pycache__/
+*.pyc
+
+# 演示缓存（本地预热产物，可再生成；公网联网模式不使用）
+data/cache/
+
+# 内部工作材料（不进公开仓库）
+_pages/
+实验结果/
+交叉报告/
+交付物/
+test_*.py
+make_case_pdf.py
+
+# 系统杂物
+Thumbs.db
+.DS_Store
+
+# 临时截图与比赛官方文件
+_check_*.png
+*.pdf
+!assets/**/*.pdf
