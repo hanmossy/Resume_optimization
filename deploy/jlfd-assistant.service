@@ -1,5 +1,5 @@
 [Unit]
-Description=Resume Diagnosis Assistant (Streamlit)
+Description=Resume Diagnosis Assistant (FastAPI + React)
 After=network.target
 
 [Service]
@@ -12,7 +12,8 @@ Environment=DEMO_CACHE_MODE=0
 Environment=ACCESS_PASSWORD=__ACCESS_PASSWORD__
 Environment=PUBLIC_SESSION_QUOTA=10
 Environment=PUBLIC_GLOBAL_HOURLY_QUOTA=300
-ExecStart=/opt/jlfd/venv/bin/streamlit run app/main.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+# FastAPI 单端口托管 API + web/dist 前端静态文件（回退：改回 streamlit run app/main.py）
+ExecStart=/opt/jlfd/venv/bin/python -m server.main
 Restart=always
 RestartSec=3
 

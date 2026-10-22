@@ -35,6 +35,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # 不传交叉报告/实验结果（内部材料）
 UPLOADS = [
     ("app", "app"),
+    ("server", "server"),
+    ("web/dist", "web/dist"),  # 前端构建产物（本地 npm run build 生成，随部署上传）
     ("data/jobs", "data/jobs"),
     ("data/prompts", "data/prompts"),
     ("data/demo", "data/demo"),
@@ -123,8 +125,8 @@ def main() -> None:
     # 5) systemd 服务注册并启动
     run(ssh, f"cp {REMOTE_ROOT}/jlfd-assistant.service /etc/systemd/system/jlfd-assistant.service")
     run(ssh, "systemctl daemon-reload && systemctl enable --now jlfd-assistant")
-    time.sleep(8)  # 等 Streamlit 冷启动
-    run(ssh, "systemctl is-active jlfd-assistant && curl -s -o /dev/null -w '本地HTTP:%{http_code}\\n' http://127.0.0.1:8501/")
+    time.sleep(6)  # 等 uvicorn 冷启动（比 Streamlit 快）
+    run(ssh, "systemctl is-active jlfd-assistant && curl -s http://127.0.0.1:8501/api/health")
 
     # 6) 安全核查：确认环境里没有团队 Key
     run(ssh, "systemctl show jlfd-assistant -p Environment | grep -c DEEPSEEK || echo 'OK: 服务环境无 DEEPSEEK_API_KEY'")
