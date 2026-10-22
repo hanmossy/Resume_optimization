@@ -9,7 +9,7 @@ import ResultSection from "./components/ResultSection";
 import Sidebar from "./components/Sidebar";
 import type {
   DemoCase, DiagnoseResponse, GapReport, JobMeta, JobRequirements,
-  ResumeData, RewriteResult,
+  ResumeData, RewriteResult, ScoreDetail,
 } from "./types";
 
 /** 全局错误提示条（按 HTTP 状态码分级配色）。 */
@@ -77,6 +77,8 @@ export default function App() {
   const [report, setReport] = useState<GapReport | null>(null);
   const [rewrites, setRewrites] = useState<RewriteResult[]>([]);
   const [failures, setFailures] = useState<string[]>([]);
+  const [scoreDetail, setScoreDetail] = useState<ScoreDetail | null>(null);
+  const [serverDown, setServerDown] = useState(false);
   const [demoHint, setDemoHint] = useState<string | null>(null);
   const [demoResumeText, setDemoResumeText] = useState<string | null>(null);
   const [demoBg, setDemoBg] = useState<{ 年级: string; 专业: string; 目标: string } | null>(null);
@@ -91,7 +93,13 @@ export default function App() {
         setPublicMode(h.public_mode);
         setDemoCacheMode(h.demo_cache_mode);
         if (!h.public_mode) setGatePassed(true);
-      } catch { setGatePassed(true); } // health 失败不阻塞（本地开发后端未起时也能看静态页）
+      } catch {
+        // health 失败分环境处理（第七轮审查第3条）：
+        // 本地开发（localhost）放行以便看页面调样式；公网环境绝不能放用户进一个
+        // "能点但没反应"的残破页面——展示维护兜底页
+        const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+        if (local) setGatePassed(true); else setServerDown(true);
+      }
     })();
   }, []);
 
@@ -109,7 +117,7 @@ export default function App() {
 
   /** 状态事务：换岗时清空全部下游（对齐 Streamlit 版 P0-2 语义） */
   const clearDownstream = useCallback(() => {
-    setReport(null); setRewrites([]); setFailures([]);
+    setReport(null); setRewrites([]); setFailures([]); setScoreDetail(null);
     setDemoHint(null); setDemoResumeText(null); setDemoBg(null);
   }, []);
 
@@ -161,11 +169,26 @@ export default function App() {
       setReport(d.report);
       setRewrites(d.rewrites);
       setFailures(d.rewrite_failures);
+      setScoreDetail(d.score_detail);
     } catch (e) {
-      setReport(null); setRewrites([]); setFailures([]);
+      setReport(null); setRewrites([]); setFailures([]); setScoreDetail(null);
       handleError(e);
     } finally { setBusy(false); }
   }, [job, demoResumeText, demoBg, handleError]);
+
+  // 公网后端不可用时的维护兜底页（第七轮审查第3条：不给公网用户看残破页面）
+  if (serverDown) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-page">
+        <div className="card w-full max-w-sm text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-300 text-xl text-white">🛠</div>
+          <h1 className="text-lg font-semibold">系统维护中</h1>
+          <p className="mb-4 mt-1 text-sm text-slate-500">服务暂时不可用，请稍后刷新重试</p>
+          <button className="btn-ghost w-full" onClick={() => window.location.reload()}>刷新页面</button>
+        </div>
+      </div>
+    );
+  }
 
   if (!gatePassed) return <PasswordGate onPass={() => setGatePassed(true)} />;
 
@@ -182,9 +205,10 @@ export default function App() {
                    onAnalyzeJd={(jd) => runAnalyze({ jd_text: jd })} />
         {job && <JobProfile job={job} />}
         {job && <DiagnoseCard demoHint={demoHint} busy={busy} onDiagnose={runDiagnose} />}
-        {job && report && (
+        {job && report && scoreDetail && (
           <>
-            <ResultSection report={report} rewrites={rewrites} failures={failures} />
+            <ResultSection report={report} rewrites={rewrites} failures={failures}
+                           scoreDetail={scoreDetail} />
             {resume && (
               <ExportPanel job={job} resume={resume} report={report}
                            rewrites={rewrites} onError={setError} />

@@ -82,4 +82,23 @@ export interface DiagnoseResponse {
   report: GapReport;
   rewrites: RewriteResult[];
   rewrite_failures: string[];
+  score_detail: ScoreDetail;
+}
+
+/** 运算过程明细（后端 gap_matcher.score_breakdown 产出，前端只渲染不复算） */
+export interface ScoreDetailItem {
+  gap_id: string;
+  ability: string;
+  importance: number;
+  status: GapStatus;
+  coefficient: number;
+  earned: number;
+}
+
+export interface ScoreDetail {
+  coefficients: Record<GapStatus, number>;
+  items: ScoreDetailItem[];
+  total_weight: number;
+  total_earned: number;
+  match_score: number;
 }

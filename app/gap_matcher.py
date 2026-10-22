@@ -134,6 +134,43 @@ def compute_score(items: list[GapItem]) -> int:
     return round(earned / total_weight * 100)
 
 
+def score_breakdown(items: list[GapItem]) -> dict[str, Any]:
+    """运算过程明细化：把 compute_score 的加权过程逐项摊开（纯函数）。
+
+    用途（第七轮审查 + 团队战略调整）：比赛考察"人机协同"与运算透明度，
+    前端"查看运算过程"面板需要逐项展示 重要度 × 命中系数 = 单项得分。
+    系数与公式唯一来源仍是本模块——前端只渲染、不复算，避免两处口径漂移。
+
+    Args:
+        items: 对齐后的 GapItem 列表（与 compute_score 同一输入）。
+
+    Returns:
+        {"coefficients": 系数表副本, "items": 逐项明细（含 coefficient/earned）,
+         "total_weight": 权重和, "total_earned": 得分和, "match_score": 0-100}
+        match_score 与 compute_score(items) 逐位一致（同一公式同一数据）。
+    """
+    detail_items = []
+    for it in items:
+        coef = config.MATCH_COEFFICIENTS[it["status"]]
+        detail_items.append({
+            "gap_id": it["gap_id"],
+            "ability": it["ability"],
+            "importance": it["importance"],
+            "status": it["status"],
+            "coefficient": coef,
+            "earned": round(it["importance"] * coef, 2),  # 单项得分，保留两位防浮点长尾
+        })
+    total_weight = sum(it["importance"] for it in items)
+    total_earned = round(sum(d["earned"] for d in detail_items), 2)
+    return {
+        "coefficients": dict(config.MATCH_COEFFICIENTS),
+        "items": detail_items,
+        "total_weight": total_weight,
+        "total_earned": total_earned,
+        "match_score": compute_score(items),
+    }
+
+
 def select_top_gaps(items: list[GapItem], count: int = config.TOP_GAPS_COUNT) -> list[GapItem]:
     """选出最值得改写的 Top-N Gap（纯函数，可单测）。
 

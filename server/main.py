@@ -203,7 +203,10 @@ async def diagnose(body: DiagnoseRequest,
         # P0-3 口径：全局性失败时诊断报告保留，改写整体作废并显式说明
         rewrites, failures = [], [f"改写建议整体不可用：{exc}"]
     return {"report": dict(report), "rewrites": [dict(r) for r in rewrites],
-            "rewrite_failures": failures}
+            "rewrite_failures": failures,
+            # 运算过程明细（重要度 × 命中系数逐项摊开）：前端"查看运算过程"面板的数据源，
+            # 由 gap_matcher 单一公式产出，前端只渲染不复算（人机协同透明度，第七轮落地项）
+            "score_detail": gap_matcher.score_breakdown(report["items"])}
 
 
 @app.post("/api/export-report", dependencies=[Depends(verify_access)])
