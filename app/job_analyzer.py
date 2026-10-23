@@ -135,10 +135,26 @@ def analyze_job(job_id: str | None = None, jd_text: str | None = None) -> JobReq
         return _load_job_file(path)
 
     # 自定义 JD 路径：LLM 抽取 + 业务校验 + 元字段补齐
+    # 校验失败重试一次：模型偶发返回结构跑偏的 JSON（如 abilities 元素是
+    # 纯字符串——公网实测复现），重试一次即可恢复；重试耗尽后作废坏缓存
+    # （防演示模式端出同一损坏条目）并显式抛错，绝不静默放行脏数据。
     assert jd_text is not None  # 供类型检查器收敛；上方已保证互斥
-    data = llm_client.chat("job_extract", jd_text)
-    from contracts import validate_job_requirements  # 局部导入，保持模块顶部依赖清晰
-    validate_job_requirements(data)
+    from contracts import (  # 局部导入，保持模块顶部依赖清晰
+        LLMOutputError,
+        validate_job_requirements,
+    )
+    data = None
+    for attempt in range(2):
+        data = llm_client.chat("job_extract", jd_text)
+        try:
+            validate_job_requirements(data)
+            break
+        except LLMOutputError:
+            if attempt == 1:
+                llm_client.discard_cached("job_extract", jd_text)
+                raise
+            # 首次校验失败：落到循环下一次，重新调用模型
+    assert data is not None
     # LLM 不产出的元字段由本模块补齐（契约表约定："无job_id/source_note，由调用方补"）
     data["job_id"] = "custom"
     data["source_note"] = "用户提供的 JD 原文，由 AI 实时解析"

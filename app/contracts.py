@@ -237,6 +237,7 @@ def validate_ability_item(ab: Any, where: str, strict_source: bool = False) -> N
     Raises:
         LLMOutputError: 字段缺失、类型错误或取值越界。
     """
+    _require(isinstance(ab, dict), f"{where} 不是对象（模型偶发返回纯字符串能力项）")
     _require(isinstance(ab.get("name"), str) and ab["name"].strip(), f"{where}.name 缺失")
     # 第三轮审查 P2-5：category 校验合法值（不只非空），拼写错误在启动期/校验期拦截
     _require(ab.get("category") in LEGAL_CATEGORIES,

@@ -233,6 +233,23 @@ def _cache_path(prompt_key: str, key: str) -> Path:
     return config.CACHE_DIR / prompt_key / f"{key}.json"
 
 
+def discard_cached(prompt_key: str, user_content: str | dict | list) -> None:
+    """作废指定输入的缓存条目（业务校验失败后调用）。
+
+    联网模式下 chat() 对所有语法合法的 JSON 写穿缓存，但语法合法 ≠
+    业务结构合法（如 abilities 元素是纯字符串）。若不作废，损坏条目
+    会在演示缓存模式下被原样服务端出，重复触发同一校验失败。
+    调用方（如 job_analyzer）在重试耗尽后调用本函数清除坏缓存。
+
+    Args:
+        prompt_key: 契约表键。
+        user_content: 与产生坏缓存时相同的用户输入。
+    """
+    version, _ = load_prompt(prompt_key)
+    cache_file = _cache_path(prompt_key, make_cache_key(prompt_key, version, user_content))
+    cache_file.unlink(missing_ok=True)
+
+
 # ---------------------------------------------------------------------------
 # DeepSeek HTTP 调用（标准库实现，OpenAI 兼容协议）
 # ---------------------------------------------------------------------------
