@@ -81,8 +81,9 @@ if not DEEPSEEK_API_KEY and not DEMO_CACHE_MODE and not PUBLIC_MODE:
 # 联网检索配置（第九轮指令：博查 Web Search，"带保险丝的增强项"）
 # ---------------------------------------------------------------------------
 
-# 博查 API Key（https://bochaai.com/ 注册获取）。注意：这是**团队 Key**，
-# 与 DeepSeek 的 BYOK 不同——搜索调用消耗团队额度，靠访问密码 + 会话配额兜底。
+# 博查 API Key（https://bochaai.com/ 注册获取）。BYOK 逻辑与 DeepSeek 完全一致：
+# 团队 Key 只存在于开发机 .env（用于本地预热检索案例）；公网服务器刻意不配置，
+# 公网用户必须填自己的博查 Key（X-User-Bocha-Key 头，依赖层强制 400）。
 BOCHA_API_KEY: str = os.environ.get("BOCHA_API_KEY", "")
 BOCHA_API_URL: str = "https://api.bochaai.com/v1/web-search"
 SEARCH_TIMEOUT_SEC: int = 8     # 保险丝：超时立即失败，绝不拖垮 FastAPI 进程

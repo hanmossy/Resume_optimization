@@ -11,8 +11,9 @@
         3. 缓存语义与 llm_client 完全一致：演示缓存模式（DEMO_CACHE_MODE）下
            命中返回、未命中抛 CacheMissError（严禁静默回退网络）；
            联网模式成功即写穿缓存——预热一次，断网可演示同一 query；
-        4. 检索调用消耗**团队** BOCHA_API_KEY（非 BYOK），公网靠访问密码 +
-           会话配额（check_session_quota）兜底。
+        4. Key 逻辑与 DeepSeek 完全一致的 BYOK：公网用户必须填自己的博查 Key
+           （X-User-Bocha-Key 头）；团队 Key 仅存于开发机 .env（config.BOCHA_API_KEY），
+           仅用于本地预热与开发，公网服务器刻意不配置。
 
 【依赖清单】
     标准库：json, urllib.request, hashlib, pathlib
@@ -96,11 +97,14 @@ def _synthesize_text(query: str, results: list[dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def search(query: str) -> dict[str, Any]:
+def search(query: str, api_key: str | None = None) -> dict[str, Any]:
     """联网检索主接口：缓存优先，联网写穿，异常显式（行为矩阵同 llm_client.chat）。
 
     Args:
         query: 检索关键词，如 "字节跳动 数据分析 实习 招聘要求"。
+        api_key: 请求级博查 Key（BYOK——公网用户填自己的 Key，与 DeepSeek 同逻辑）。
+            None 时回落 config.BOCHA_API_KEY（团队 Key，仅限本地预热/开发，
+            公网服务器刻意不配置——依赖层在 PUBLIC_MODE 下强制要求请求级 Key）。
 
     Returns:
         {"query", "text": 合成文本（job_extract 输入）,
@@ -108,7 +112,7 @@ def search(query: str) -> dict[str, Any]:
 
     Raises:
         CacheMissError: 演示缓存模式下缓存未命中（严禁回退网络）。
-        SearchUnavailableError: 联网模式下的一切失败（未配 Key/超时/HTTP 错/空结果）。
+        SearchUnavailableError: 联网模式下的一切失败（无 Key/超时/HTTP 错/空结果）。
     """
     query = query.strip()
     if not query:
@@ -124,15 +128,16 @@ def search(query: str) -> dict[str, Any]:
                 raise CacheMissError(f"检索缓存文件损坏: {cache_file.name}，请删除后重新预热") from exc
         raise CacheMissError("演示缓存未命中（web_search）：联网检索仅支持已预热的演示查询")
 
-    # 联网模式：Key 缺失是配置问题，不是网络问题，但同样走保险丝
-    if not config.BOCHA_API_KEY:
-        raise SearchUnavailableError("未配置 BOCHA_API_KEY（请注册博查 API 并写入 .env / 环境变量）")
+    # 联网模式：BYOK 优先，团队 Key 仅本地兜底；两者皆无是配置问题，同样走保险丝
+    effective_key = (api_key or "").strip() or config.BOCHA_API_KEY
+    if not effective_key:
+        raise SearchUnavailableError("未提供博查 API Key（请在侧栏填入自己的 Key，或改用预设岗位库）")
 
     body = json.dumps({"query": query, "freshness": "noLimit", "summary": True,
                        "count": config.SEARCH_MAX_RESULTS}).encode("utf-8")
     request = urllib.request.Request(
         config.BOCHA_API_URL, data=body, method="POST",
-        headers={"Authorization": f"Bearer {config.BOCHA_API_KEY}",
+        headers={"Authorization": f"Bearer {effective_key}",
                  "Content-Type": "application/json"},
     )
     try:

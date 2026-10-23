@@ -58,7 +58,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
-from server.deps import check_session_quota, inject_byok, verify_access
+from server.deps import check_session_quota, extract_bocha_key, inject_byok, verify_access
 from server.schemas import (
     AnalyzeJobRequest,
     AuthRequest,
@@ -169,21 +169,26 @@ async def analyze_job(body: AnalyzeJobRequest,
 @app.post("/api/search-job")
 async def search_job(body: SearchJobRequest,
                      session_id: str = Depends(verify_access),
-                     _key: None = Depends(inject_byok)) -> dict:
+                     _key: None = Depends(inject_byok),
+                     bocha_key: str = Depends(extract_bocha_key)) -> dict:
     """AI 联网检索岗位（第九轮指令）：博查搜索 → 合成文本 → job_extract 抽取。
 
     保险丝语义：
         - 检索失败（超时/断网/无 Key）→ SearchUnavailableError → 503，
           前端引导改用预设岗位库，主链路不受影响；
         - 演示缓存模式下 query 未预热 → CacheMissError → 409；
-        - 消耗会话配额（含 LLM 调用 + 团队搜索 Key 双重成本）。
+        - 消耗会话配额（LLM 调用 + 检索双重成本）。
+
+    Key 逻辑（BYOK，与 DeepSeek 一致）：公网用户必须用自己的博查 Key
+    （X-User-Bocha-Key 头，PUBLIC_MODE 缺失即 400）；团队 Key 仅存在于
+    开发机 .env 用于预热，公网服务器刻意不配置。
 
     Returns:
         {"job": JobRequirements, "source": "AI联网检索", "source_urls": [...]}
         job 是独立字段——下游 /api/diagnose 只认 job，来源信息仅供展示。
     """
     check_session_quota(session_id)
-    found = await run_in_threadpool(search_client.search, body.query)
+    found = await run_in_threadpool(search_client.search, body.query, bocha_key or None)
     job = await run_in_threadpool(job_analyzer.analyze_job, None, found["text"])
     # 覆盖元字段：标注检索来源（importance_source 已被 analyze_job 标为 LLM评估）
     job["job_id"] = "search"

@@ -20,12 +20,15 @@ export const creds = {
   set password(v: string) { localStorage.setItem("access_password", v); },
   get apiKey() { return localStorage.getItem("user_api_key") ?? ""; },
   set apiKey(v: string) { localStorage.setItem("user_api_key", v); },
+  get bochaKey() { return localStorage.getItem("user_bocha_key") ?? ""; },
+  set bochaKey(v: string) { localStorage.setItem("user_bocha_key", v); },
 };
 
 async function requestRaw(path: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers);
   headers.set("X-Access-Password", creds.password);
   headers.set("X-User-Api-Key", creds.apiKey);
+  headers.set("X-User-Bocha-Key", creds.bochaKey);  // 博查 BYOK（与 DeepSeek 同逻辑）
   const res = await fetch(path, { ...init, headers });
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;

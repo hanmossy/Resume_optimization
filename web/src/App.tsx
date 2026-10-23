@@ -65,6 +65,7 @@ function PasswordGate({ onPass }: { onPass: () => void }) {
 export default function App() {
   // ---- 凭证与模式 ----
   const [apiKey, setApiKey] = useState(creds.apiKey);
+  const [bochaKey, setBochaKey] = useState(creds.bochaKey);
   const [publicMode, setPublicMode] = useState(false);
   const [demoCacheMode, setDemoCacheMode] = useState(true);
   const [gatePassed, setGatePassed] = useState(false);
@@ -223,6 +224,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-page">
       <Sidebar apiKey={apiKey} onApiKeyChange={setApiKey}
+               bochaKey={bochaKey} onBochaKeyChange={setBochaKey}
                publicMode={publicMode} demoCacheMode={demoCacheMode} />
       <main className="ml-64 space-y-6 px-8 py-8">
         <Banner />

@@ -51,6 +51,22 @@ def inject_byok(x_user_api_key: str = Header(default="")) -> None:
     llm_client.set_request_api_key(x_user_api_key or None)
 
 
+def extract_bocha_key(x_user_bocha_key: str = Header(default="")) -> str:
+    """博查 Key 提取依赖（BYOK，与 DeepSeek 同一逻辑——团队 Key 绝不上公网）。
+
+    Returns:
+        请求级博查 Key（可能为空字符串，本地模式由 search_client 回落团队 Key）。
+
+    Raises:
+        HTTPException 400: PUBLIC_MODE 下未提供——公网用户必须用自己的博查 Key。
+    """
+    if config.PUBLIC_MODE and not x_user_bocha_key.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="缺少博查 API Key：联网检索需要在左侧设置栏填入你自己的博查 Key（BYOK），或改用预设岗位库")
+    return x_user_bocha_key.strip()
+
+
 def check_session_quota(session_id: str) -> None:
     """会话级限流依赖：超过每会话配额抛 429。
 

@@ -3,12 +3,14 @@ import { creds } from "../api";
 interface Props {
   apiKey: string;
   onApiKeyChange: (v: string) => void;
+  bochaKey: string;
+  onBochaKeyChange: (v: string) => void;
   publicMode: boolean;
   demoCacheMode: boolean;
 }
 
-/** 左侧固定 Sidebar：Logo + BYOK Key 设置（对齐设计稿 Sidebar 布局）。 */
-export default function Sidebar({ apiKey, onApiKeyChange, publicMode, demoCacheMode }: Props) {
+/** 左侧固定 Sidebar：Logo + BYOK Key 设置（DeepSeek + 博查，同一 BYOK 逻辑）。 */
+export default function Sidebar({ apiKey, onApiKeyChange, bochaKey, onBochaKeyChange, publicMode, demoCacheMode }: Props) {
   return (
     <aside className="fixed inset-y-0 left-0 flex w-64 flex-col border-r border-slate-200/70 bg-white/80 backdrop-blur">
       <div className="flex items-center gap-2 px-5 py-5">
@@ -35,6 +37,22 @@ export default function Sidebar({ apiKey, onApiKeyChange, publicMode, demoCacheM
             {publicMode
               ? "公网体验版不内置 Key，各人使用各人的额度。Key 仅保存在你的浏览器中。"
               : "留空时使用内置开发配置；Key 仅保存在本地浏览器中。"}
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-500">
+            你的博查 API Key（仅"全网检索岗位"用）
+          </label>
+          <input
+            type="password"
+            value={bochaKey}
+            onChange={(e) => { creds.bochaKey = e.target.value; onBochaKeyChange(e.target.value); }}
+            placeholder="sk-..."
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+          />
+          <p className="mt-1 text-xs leading-relaxed text-slate-400">
+            不填也能用预设岗位库与粘贴 JD；只有点「AI 检索」时才需要。Key 仅保存在你的浏览器中。
           </p>
         </div>
 
