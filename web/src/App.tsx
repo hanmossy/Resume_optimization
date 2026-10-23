@@ -85,6 +85,7 @@ export default function App() {
   const [demoHint, setDemoHint] = useState<string | null>(null);
   const [demoResumeText, setDemoResumeText] = useState<string | null>(null);
   const [demoBg, setDemoBg] = useState<{ 年级: string; 专业: string; 目标: string } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);  // 一键换岗后的引导提示
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
@@ -125,6 +126,15 @@ export default function App() {
     setSearchUrls(null);
   }, []);
 
+  /** 一键换岗（第十一轮指令）：保留已解析简历，清空岗位与全部下游结果，
+      平滑滚动回选岗区并给出引导提示；用户选完新岗位后无需重新上传简历。 */
+  const switchJob = useCallback(() => {
+    setJob(null);
+    clearDownstream();
+    setNotice("已为你保留简历，请选择新的岗位开始诊断（无需重新上传）");
+    document.getElementById("step1")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [clearDownstream]);
+
   const handleError = useCallback((e: unknown) => {
     setError(e instanceof ApiError ? e : new ApiError(500, String(e)));
   }, []);
@@ -134,6 +144,7 @@ export default function App() {
     try {
       const j = await api.analyzeJob(payload);
       clearDownstream();
+      setNotice(null);  // 新岗位就绪，换岗引导提示使命完成
       setJob(j);
     } catch (e) { handleError(e); } finally { setBusy(false); }
   }, [clearDownstream, handleError]);
@@ -153,6 +164,7 @@ export default function App() {
     try {
       const r = await api.searchJob(query);
       clearDownstream();
+      setNotice(null);
       setJob(r.job);
       setSearchUrls(r.source_urls);
     } catch (e) {
@@ -177,6 +189,7 @@ export default function App() {
         api.demoResume(c.resume_file),
       ]);
       clearDownstream();
+      setNotice(null);
       setJob(j);
       setDemoResumeText(r.text);
       setDemoBg(c.background);
@@ -189,16 +202,23 @@ export default function App() {
     background: { 年级: string; 专业: string; 目标: string };
   }) => {
     if (!job) return;
-    const text = demoResumeText ?? input.text;
-    const file = demoResumeText ? null : input.file;
-    if (!file && !text.trim()) {
-      setError(new ApiError(422, "请上传简历文件，或粘贴简历文本"));
-      return;
-    }
     const background = demoBg ?? input.background;
     setBusy(true); setError(null);
     try {
-      const r = await api.parseResume(file, text);
+      // 简历来源三级优先（一键换岗的核心，第十一轮指令）：
+      // ① 演示案例固定文本 → ② 用户本次新上传/粘贴 → ③ 上次已解析的简历（换岗复用，
+      // 无需重新上传）；三者皆无才提示补充输入
+      let r: ResumeData | null = null;
+      if (demoResumeText) {
+        r = await api.parseResume(null, demoResumeText);
+      } else if (input.file || input.text.trim()) {
+        r = await api.parseResume(input.file, input.text);
+      } else if (resume) {
+        r = resume;
+      } else {
+        setError(new ApiError(422, "请上传简历文件，或粘贴简历文本"));
+        return;
+      }
       setResume(r);
       const d: DiagnoseResponse = await api.diagnose({ job, resume: r, background });
       setReport(d.report);
@@ -209,7 +229,7 @@ export default function App() {
       setReport(null); setRewrites([]); setFailures([]); setScoreDetail(null);
       handleError(e);
     } finally { setBusy(false); }
-  }, [job, demoResumeText, demoBg, handleError]);
+  }, [job, resume, demoResumeText, demoBg, handleError]);
 
   // 公网后端不可用时的维护兜底页（第七轮审查第3条：不给公网用户看残破页面）
   if (serverDown) {
@@ -235,17 +255,25 @@ export default function App() {
       <main className="ml-64 space-y-6 px-8 py-8">
         <Banner />
         {error && <ErrorBanner err={error} onClose={() => setError(null)} />}
+        {notice && (
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+            <span>💡 {notice}</span>
+            <button onClick={() => setNotice(null)} className="shrink-0 opacity-60 transition hover:opacity-100">✕</button>
+          </div>
+        )}
         <JobSelect jobs={jobs} demoCases={demoCases} busy={busy} searchStage={searchStage}
                    onPickJob={(id) => runAnalyze({ job_id: id })}
                    onPickDemo={pickDemo}
                    onAnalyzeJd={(jd) => runAnalyze({ jd_text: jd })}
                    onSearch={runSearch} />
         {job && <JobProfile job={job} searchUrls={searchUrls} />}
-        {job && <DiagnoseCard demoHint={demoHint} busy={busy} onDiagnose={runDiagnose} />}
+        {job && <DiagnoseCard demoHint={demoHint} busy={busy}
+                              retainedName={!demoResumeText && resume ? (resume.name || "已解析简历") : null}
+                              onDiagnose={runDiagnose} />}
         {job && report && scoreDetail && (
           <>
             <ResultSection report={report} rewrites={rewrites} failures={failures}
-                           scoreDetail={scoreDetail} />
+                           scoreDetail={scoreDetail} onSwitchJob={switchJob} />
             {resume && (
               <ExportPanel job={job} resume={resume} report={report}
                            rewrites={rewrites} onError={setError} />

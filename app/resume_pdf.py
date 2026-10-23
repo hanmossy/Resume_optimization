@@ -245,9 +245,10 @@ def _esc(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-# bullet 行首小标题标记：【小标题】具体职责与业绩（gap_rewrite v1.1 输出约定）；
-# 英文版由 resume_translate v1.2 转写为 [Headline] 格式，一并识别
-_HEADLINE_RE = re.compile(r"^(【[^【】]{1,20}】|\[[^\[\]]{1,30}\])(.*)$", re.S)
+# bullet 行首小标题标记（gap_rewrite v1.4 输出约定：「小标题：具体职责与业绩」，
+# 英文版由 resume_translate v1.3 转写为 "Headline: ..."；同时兼容旧版【】/[] 格式）
+_HEADLINE_RE = re.compile(
+    r"^(【[^【】]{1,20}】|\[[^\[\]]{1,30}\]|[^\s：:【】\[\]，。；]{2,10}[：:])(.*)$", re.S)
 
 
 def _bullet_html(bullet: str, bold_font: str) -> str:

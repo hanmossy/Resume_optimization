@@ -145,6 +145,11 @@ def section_job_select() -> None:
     """区块 1：选岗。三种入口：演示案例 / 预设岗位 / 粘贴 JD。"""
     st.header("第一步：选择目标岗位")
 
+    # 一键换岗引导（第十一轮指令）：换岗后简历仍保留，提示一次性展示
+    if st.session_state.get("switch_notice"):
+        st.info("已为你保留简历，请选择新的岗位开始诊断（无需重新上传）。")
+        st.session_state["switch_notice"] = False
+
     # 演示案例快捷入口（拍摄现场推荐走这里，全程缓存、断网可跑）
     cols = st.columns(3)
     for col, (label, job_id, resume_file, bg) in zip(cols, DEMO_CASES):
@@ -280,6 +285,10 @@ def section_diagnose() -> None:
     if demo_mode:
         st.info(f"已载入演示配套简历：{demo_file}｜背景已固定为："
                 f"{demo_bg['年级']} / {demo_bg['专业']} / 目标{demo_bg['目标']}（点击「开始诊断」即可）")
+    elif st.session_state.get("resume_data"):
+        # 一键换岗后的保留简历提示（非演示路径）：免上传直接诊断
+        kept = st.session_state["resume_data"].get("name") or "已解析简历"
+        st.success(f"已为你保留简历（{kept}），可直接点击「开始诊断」；如需更换，重新上传或粘贴新文本即可。")
 
     uploaded = st.file_uploader("上传简历（PDF / TXT）", type=["pdf", "txt"],
                                 disabled=demo_mode)
@@ -289,6 +298,9 @@ def section_diagnose() -> None:
     # 并让用户知道"填了有什么用"——AI 按阶段调整评估基线）
     with st.container(border=True):
         st.caption("**补充背景信息**（选填，AI 将根据你的阶段调整评估标准）")
+        st.caption("AI 会根据你的当前阶段动态调整部分软性指标的期望值"
+                   "（例如，对大二学生的实习项目要求与大四求职不同）。"
+                   "但岗位的核心硬门槛标准恒定不变。")
         cols = st.columns(3)
         grade = cols[0].selectbox("年级", ["大一", "大二", "大三", "大四", "研究生"],
                                   disabled=demo_mode)
@@ -322,6 +334,9 @@ def _run_diagnosis(uploaded, pasted: str, demo_file: str | None, background: dic
                 resume = resume_parser.parse_resume(uploaded.getvalue(), uploaded.name)
             elif pasted.strip():
                 resume = resume_parser.parse_pasted_text(pasted)
+            elif st.session_state.get("resume_data") is not None:
+                # 一键换岗复用（第十一轮指令）：保留的简历直接进诊断，免重复解析
+                resume = st.session_state["resume_data"]
             else:
                 st.warning("请上传简历文件，或粘贴简历文本")
                 return
@@ -360,6 +375,20 @@ def section_result() -> None:
     if not (report and job):
         return
     st.header("诊断结果")
+
+    # 一键换岗（第十一轮指令）：保留已解析简历，清空岗位与全部下游结果——
+    # 测完一个岗位直接换下一个，无需重新上传；清场清单与 _run_job_analysis 同口径
+    if st.button("🔄 换一个岗位试试（简历已保留，无需重新上传）"):
+        st.session_state["job_req"] = None
+        st.session_state["gap_report"] = None
+        st.session_state["rewrites"] = None
+        st.session_state["rewrite_failures"] = []
+        st.session_state["demo_resume_file"] = None
+        st.session_state["demo_bg"] = None
+        st.session_state["search_urls"] = None
+        _clear_export_bytes()
+        st.session_state["switch_notice"] = True  # 选岗区展示引导提示（一次性）
+        st.rerun()
 
     st.metric("简历与岗位匹配度", f"{report['match_score']} / 100")
     st.caption("评分口径：Σ(权重 × 命中系数) ÷ Σ权重 × 100｜系数：已具备(强证据) 1.0 / "

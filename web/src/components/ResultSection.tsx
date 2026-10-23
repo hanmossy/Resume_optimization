@@ -131,10 +131,12 @@ interface Props {
   rewrites: RewriteResult[];
   failures: string[];
   scoreDetail: ScoreDetail;
+  /** 一键换岗（第十一轮指令）：保留简历、清空岗位与结果，滚动回选岗区 */
+  onSwitchJob: () => void;
 }
 
 /** 诊断结果区：环形匹配度 + 运算过程面板 + 能力对照网格（Pill 标签）+ 改写左右对照卡片。 */
-export default function ResultSection({ report, rewrites, failures, scoreDetail }: Props) {
+export default function ResultSection({ report, rewrites, failures, scoreDetail, onSwitchJob }: Props) {
   const abilityOf = Object.fromEntries(report.items.map((it) => [it.gap_id, it.ability]));
   return (
     <section className="card space-y-6">
@@ -210,6 +212,13 @@ export default function ResultSection({ report, rewrites, failures, scoreDetail 
       {failures.map((f, i) => (
         <p key={i} className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">{f}</p>
       ))}
+
+      {/* 一键换岗（第十一轮指令）：体验闭环——测完一个岗位直接换下一个，简历保留 */}
+      <div className="flex justify-center border-t border-slate-100 pt-5">
+        <button className="btn-ghost" onClick={onSwitchJob}>
+          🔄 换一个岗位试试（简历已保留，无需重新上传）
+        </button>
+      </div>
     </section>
   );
 }

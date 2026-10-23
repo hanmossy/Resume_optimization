@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 
 interface Props {
   demoHint: string | null; // 演示模式提示文案（非空则锁定输入）
+  /** 一键换岗后保留的简历姓名（null 表示无保留简历）；非空时允许免上传直接诊断 */
+  retainedName: string | null;
   onDiagnose: (payload: {
     file: File | null; text: string;
     background: { 年级: string; 专业: string; 目标: string };
@@ -13,7 +15,7 @@ const GRADES = ["大一", "大二", "大三", "大四", "研究生"];
 const GOALS = ["实习", "求职"];
 
 /** 第二步（交互上）：上传简历 + 背景信息 + 开始诊断。支持拖拽上传。 */
-export default function DiagnoseCard({ demoHint, onDiagnose, busy }: Props) {
+export default function DiagnoseCard({ demoHint, retainedName, onDiagnose, busy }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [grade, setGrade] = useState("大三");
@@ -28,6 +30,11 @@ export default function DiagnoseCard({ demoHint, onDiagnose, busy }: Props) {
       <h2 className="mb-1 text-lg font-semibold">第二步：上传简历，开始诊断</h2>
       {locked && (
         <p className="mb-3 rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-700">{demoHint}</p>
+      )}
+      {!locked && retainedName && (
+        <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          ✅ 已为你保留简历（{retainedName}），可直接点击「开始诊断」；如需更换，重新上传或粘贴新文本即可。
+        </p>
       )}
 
       <div
@@ -61,6 +68,9 @@ export default function DiagnoseCard({ demoHint, onDiagnose, busy }: Props) {
       <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
         <p className="mb-2 text-xs font-medium text-slate-500">
           补充背景信息（选填，AI 将根据你的阶段调整评估标准）
+        </p>
+        <p className="mb-2 text-xs leading-relaxed text-slate-400">
+          AI 会根据你的当前阶段动态调整部分软性指标的期望值（例如，对大二学生的实习项目要求与大四求职不同）。但岗位的核心硬门槛标准恒定不变。
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <select value={grade} disabled={locked} onChange={(e) => setGrade(e.target.value)}

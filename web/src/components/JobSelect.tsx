@@ -17,7 +17,7 @@ interface Props {
 export default function JobSelect({ jobs, demoCases, onPickJob, onPickDemo, onAnalyzeJd, onSearch, busy, searchStage }: Props) {
   const [query, setQuery] = useState("");
   return (
-    <section className="card">
+    <section className="card" id="step1">
       <h2 className="mb-1 text-lg font-semibold">第一步：选择目标岗位</h2>
       <p className="mb-4 text-sm text-slate-500">演示案例可一键跑通全流程；也可以从岗位库选择、全网检索或粘贴自定义 JD。</p>
 
