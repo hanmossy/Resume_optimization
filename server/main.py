@@ -44,6 +44,7 @@ import pdf_exporter
 import resume_parser
 import resume_pdf
 import rewriter
+import search_client
 from contracts import (
     AppError,
     CacheMissError,
@@ -64,6 +65,7 @@ from server.schemas import (
     DiagnoseRequest,
     ExportReportRequest,
     ExportResumeRequest,
+    SearchJobRequest,
     resume_from_wire,
     resume_to_wire,
 )
@@ -162,6 +164,31 @@ async def analyze_job(body: AnalyzeJobRequest,
     result = await run_in_threadpool(
         job_analyzer.analyze_job, job_id=body.job_id, jd_text=body.jd_text)
     return dict(result)
+
+
+@app.post("/api/search-job")
+async def search_job(body: SearchJobRequest,
+                     session_id: str = Depends(verify_access),
+                     _key: None = Depends(inject_byok)) -> dict:
+    """AI 联网检索岗位（第九轮指令）：博查搜索 → 合成文本 → job_extract 抽取。
+
+    保险丝语义：
+        - 检索失败（超时/断网/无 Key）→ SearchUnavailableError → 503，
+          前端引导改用预设岗位库，主链路不受影响；
+        - 演示缓存模式下 query 未预热 → CacheMissError → 409；
+        - 消耗会话配额（含 LLM 调用 + 团队搜索 Key 双重成本）。
+
+    Returns:
+        {"job": JobRequirements, "source": "AI联网检索", "source_urls": [...]}
+        job 是独立字段——下游 /api/diagnose 只认 job，来源信息仅供展示。
+    """
+    check_session_quota(session_id)
+    found = await run_in_threadpool(search_client.search, body.query)
+    job = await run_in_threadpool(job_analyzer.analyze_job, None, found["text"])
+    # 覆盖元字段：标注检索来源（importance_source 已被 analyze_job 标为 LLM评估）
+    job["job_id"] = "search"
+    job["source_note"] = f"AI 联网检索生成（{len(found['urls'])} 个网页摘要），请人工核验"
+    return {"job": dict(job), "source": "AI联网检索", "source_urls": found["urls"]}
 
 
 @app.post("/api/parse-resume")

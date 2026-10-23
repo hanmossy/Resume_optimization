@@ -29,6 +29,12 @@ class AnalyzeJobRequest(BaseModel):
     jd_text: str | None = None
 
 
+class SearchJobRequest(BaseModel):
+    """联网检索岗位请求（第九轮指令：博查搜索 → LLM 抽取岗位画像）。"""
+
+    query: str = Field(min_length=1, max_length=100)
+
+
 class Background(BaseModel):
     """用户背景信息（进入 gap_judge 的缓存键，字段名与 DEMO_CASES 一致）。"""
 

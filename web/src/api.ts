@@ -4,7 +4,7 @@
  * 错误统一抛 ApiError（含 HTTP 状态码与后端 detail 文案），组件按 status 分级提示。
  */
 import type {
-  DemoCase, DiagnoseResponse, JobMeta, JobRequirements, ResumeData,
+  DemoCase, DiagnoseResponse, JobMeta, JobRequirements, ResumeData, SearchJobResponse,
 } from "./types";
 
 export class ApiError extends Error {
@@ -64,6 +64,9 @@ export const api = {
     request<{ filename: string; text: string }>(`/api/demo-resume/${encodeURIComponent(filename)}`),
   analyzeJob: (payload: { job_id?: string; jd_text?: string }) =>
     jsonPostRaw("/api/analyze-job", payload).then((r) => r.json() as Promise<JobRequirements>),
+  /** AI 联网检索岗位：博查搜索 → LLM 抽取岗位画像（带 8s 保险丝，失败抛 503） */
+  searchJob: (query: string) =>
+    jsonPostRaw("/api/search-job", { query }).then((r) => r.json() as Promise<SearchJobResponse>),
   parseResume: (file: File | null, text: string) => {
     const form = new FormData();
     if (file) form.append("file", file);

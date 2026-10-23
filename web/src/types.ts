@@ -85,6 +85,13 @@ export interface DiagnoseResponse {
   score_detail: ScoreDetail;
 }
 
+/** AI 联网检索岗位响应（/api/search-job）：job 供下游诊断，来源信息仅供展示 */
+export interface SearchJobResponse {
+  job: JobRequirements;
+  source: string;
+  source_urls: string[];
+}
+
 /** 运算过程明细（后端 gap_matcher.score_breakdown 产出，前端只渲染不复算） */
 export interface ScoreDetailItem {
   gap_id: string;

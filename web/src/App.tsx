@@ -74,6 +74,8 @@ export default function App() {
   const [demoCases, setDemoCases] = useState<DemoCase[]>([]);
   const [job, setJob] = useState<JobRequirements | null>(null);
   const [resume, setResume] = useState<ResumeData | null>(null);
+  const [searchUrls, setSearchUrls] = useState<string[] | null>(null);  // AI 检索来源链接
+  const [searchStage, setSearchStage] = useState<string | null>(null);  // 检索步骤提示
   const [report, setReport] = useState<GapReport | null>(null);
   const [rewrites, setRewrites] = useState<RewriteResult[]>([]);
   const [failures, setFailures] = useState<string[]>([]);
@@ -119,6 +121,7 @@ export default function App() {
   const clearDownstream = useCallback(() => {
     setReport(null); setRewrites([]); setFailures([]); setScoreDetail(null);
     setDemoHint(null); setDemoResumeText(null); setDemoBg(null);
+    setSearchUrls(null);
   }, []);
 
   const handleError = useCallback((e: unknown) => {
@@ -132,6 +135,31 @@ export default function App() {
       clearDownstream();
       setJob(j);
     } catch (e) { handleError(e); } finally { setBusy(false); }
+  }, [clearDownstream, handleError]);
+
+  /** AI 联网检索岗位：两段式步骤提示（搜索 → 提取），保险丝失败引导回预设库 */
+  const runSearch = useCallback(async (query: string) => {
+    setBusy(true); setError(null);
+    setSearchStage("正在全网搜索相关 JD…");
+    // 步骤提示的第二阶段：搜索与抽取是同一个请求，用定时器模拟阶段切换（纯 UI 提示）
+    const stageTimer = setTimeout(() => setSearchStage("AI 正在提取能力项…"), 2000);
+    try {
+      const r = await api.searchJob(query);
+      clearDownstream();
+      setJob(r.job);
+      setSearchUrls(r.source_urls);
+    } catch (e) {
+      // 503/409 已在 ApiError 内：追加引导文案，帮助用户回退到主链路
+      if (e instanceof ApiError && (e.status === 503 || e.status === 409)) {
+        handleError(new ApiError(e.status, `${e.message}——可改用预设岗位库或粘贴 JD，主功能不受影响`));
+      } else {
+        handleError(e);
+      }
+    } finally {
+      clearTimeout(stageTimer);
+      setSearchStage(null);
+      setBusy(false);
+    }
   }, [clearDownstream, handleError]);
 
   const pickDemo = useCallback(async (c: DemoCase) => {
@@ -199,11 +227,12 @@ export default function App() {
       <main className="ml-64 space-y-6 px-8 py-8">
         <Banner />
         {error && <ErrorBanner err={error} onClose={() => setError(null)} />}
-        <JobSelect jobs={jobs} demoCases={demoCases} busy={busy}
+        <JobSelect jobs={jobs} demoCases={demoCases} busy={busy} searchStage={searchStage}
                    onPickJob={(id) => runAnalyze({ job_id: id })}
                    onPickDemo={pickDemo}
-                   onAnalyzeJd={(jd) => runAnalyze({ jd_text: jd })} />
-        {job && <JobProfile job={job} />}
+                   onAnalyzeJd={(jd) => runAnalyze({ jd_text: jd })}
+                   onSearch={runSearch} />
+        {job && <JobProfile job={job} searchUrls={searchUrls} />}
         {job && <DiagnoseCard demoHint={demoHint} busy={busy} onDiagnose={runDiagnose} />}
         {job && report && scoreDetail && (
           <>

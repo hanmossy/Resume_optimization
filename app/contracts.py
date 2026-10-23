@@ -56,6 +56,15 @@ class LLMUnavailableError(AppError):
     """
 
 
+class SearchUnavailableError(LLMUnavailableError):
+    """联网检索（博查 API）失败：超时、断网、HTTP 错误或未配置 Key。
+
+    继承 LLMUnavailableError——API 层异常映射自动归入 503，无需新增分支。
+    界面降级（保险丝语义）：提示"联网检索暂不可用"，引导改用预设岗位库
+    或粘贴 JD——搜索是增强项，挂了绝不影响主链路。
+    """
+
+
 class LLMOutputError(AppError):
     """LLM 输出语法合法但业务校验失败（缺字段/类型错/数量不对齐）。
 

@@ -140,7 +140,39 @@ def main() -> int:
         json.dumps({"entries": entries}, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n✅ 全部案例预热成功，manifest 已记录 {len(entries)} 个缓存文件。")
     print("   请将 DEMO_CACHE_MODE 改回 1，并用 self_check() 验证断网可演示。")
+    prewarm_search_case()  # 可选增强项：失败只警告，不影响三案例预热结果
     return 0
+
+
+def prewarm_search_case() -> bool:
+    """可选预热：AI 联网检索演示案例（第九轮指令的"带保险丝增强项"）。
+
+    预热链路 = 演示链路：search_client.search(query) → job_analyzer.analyze_job(jd_text)。
+    两者都走写穿缓存——联网跑一次后，断网演示同一 query（逐字一致）全部命中。
+
+    保险丝语义：本函数的一切失败只打印警告并返回 False，
+    **绝不影响三案例主预热的结果**（搜索是增强项，不是主链路）。
+
+    Returns:
+        True = 检索案例预热成功；False = 跳过（无 Key）或失败（已打印警告）。
+    """
+    import search_client  # 局部导入：仅本函数使用
+
+    query = config.SEARCH_DEMO_QUERY
+    if not config.BOCHA_API_KEY:
+        print(f"\n⚠️ 未配置 BOCHA_API_KEY，跳过联网检索案例预热（{query}）。")
+        print("   注册 https://bochaai.com/ 后在 .env 写入 BOCHA_API_KEY=... 再重跑本脚本即可。")
+        return False
+    print(f"\n=== 预热 AI 联网检索案例（query: {query}）===")
+    try:
+        found = search_client.search(query)  # 博查 API + 写穿缓存
+        job = job_analyzer.analyze_job(jd_text=found["text"])  # LLM：job_extract
+        print(f"  ✅ 检索 {len(found['urls'])} 个来源，抽取岗位「{job['job_title']}」，"
+              f"{len(job['abilities'])} 项能力——断网演示已就绪")
+        return True
+    except Exception as exc:  # 保险丝：任何异常都只警告
+        print(f"  ⚠️ 检索案例预热失败（不影响三案例）: {exc}")
+        return False
 
 
 if __name__ == "__main__":

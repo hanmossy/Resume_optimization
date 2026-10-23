@@ -77,6 +77,20 @@ PUBLIC_GLOBAL_HOURLY_QUOTA: int = int(os.environ.get("PUBLIC_GLOBAL_HOURLY_QUOTA
 if not DEEPSEEK_API_KEY and not DEMO_CACHE_MODE and not PUBLIC_MODE:
     DEMO_CACHE_MODE = True
 
+# ---------------------------------------------------------------------------
+# 联网检索配置（第九轮指令：博查 Web Search，"带保险丝的增强项"）
+# ---------------------------------------------------------------------------
+
+# 博查 API Key（https://bochaai.com/ 注册获取）。注意：这是**团队 Key**，
+# 与 DeepSeek 的 BYOK 不同——搜索调用消耗团队额度，靠访问密码 + 会话配额兜底。
+BOCHA_API_KEY: str = os.environ.get("BOCHA_API_KEY", "")
+BOCHA_API_URL: str = "https://api.bochaai.com/v1/web-search"
+SEARCH_TIMEOUT_SEC: int = 8     # 保险丝：超时立即失败，绝不拖垮 FastAPI 进程
+SEARCH_MAX_RESULTS: int = 10    # 取前 N 条摘要合成检索文本
+SEARCH_CACHE_DIR: Path = CACHE_DIR / "web_search"  # 检索结果缓存（与 LLM 缓存同套语义）
+# 演示检索案例（预热用）：query 固定，预热与演示必须逐字一致（缓存键语义同 LLM）
+SEARCH_DEMO_QUERY: str = "字节跳动 数据分析 实习 招聘要求"
+
 # 演示案例注册表（第二轮审查 P0-3：全局单一来源；第三轮审查 P0 回归修订：
 # 扩为四元组，**背景信息一并锁死**——缓存键含 background，预热与演示必须
 # 使用完全相同的背景，否则预热成功 ≠ 演示命中）。禁止 main.py / prewarm_cache.py
