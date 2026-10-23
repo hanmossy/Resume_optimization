@@ -36,6 +36,7 @@ import pdf_exporter
 import resume_parser
 import resume_pdf
 import rewriter
+import search_client
 from contracts import (
     AppError,
     CacheMissError,
@@ -65,7 +66,7 @@ def init_state() -> None:
     """
     for key in ("job_req", "resume_data", "gap_report", "rewrites",
                 "demo_resume_file", "demo_bg", "pdf_bytes",
-                "resume_zh_bytes", "resume_en_bytes"):
+                "resume_zh_bytes", "resume_en_bytes", "search_urls"):
         st.session_state.setdefault(key, None)
     st.session_state.setdefault("rewrite_failures", [])
 
@@ -165,6 +166,49 @@ def section_job_select() -> None:
             else:
                 st.warning("请先粘贴 JD 原文")
 
+    with st.expander("🔍 全网检索岗位（AI 联网搜索 JD，增强项）"):
+        query = st.text_input("输入岗位关键词", placeholder="如：字节跳动 产品经理 实习")
+        if st.button("检索并生成岗位画像"):
+            if query.strip():
+                _run_job_search(query.strip())
+            else:
+                st.warning("请先输入岗位关键词")
+
+
+def _run_job_search(query: str) -> None:
+    """AI 联网检索岗位（第九轮指令的"带保险丝增强项" Streamlit 侧兑现）。
+
+    保险丝语义：检索失败 / 缓存未命中 / Key 缺失 → 显式报错并引导回
+    预设岗位库，绝不影响主链路状态（与 FastAPI 版 503/409/400 同口径）。
+    Key 逻辑（BYOK）：公网模式强制用户自带博查 Key；本地模式留空时
+    由 search_client 回落团队 Key（仅存于开发机 .env）。
+    """
+    bocha_key = st.session_state.get("user_bocha_key", "")
+    if config.PUBLIC_MODE and not bocha_key.strip():
+        st.error("请先在左侧栏填入你的博查 API Key（联网检索用），或改用预设岗位库")
+        return
+    if not require_byok_and_quota():  # 检索后还有 LLM 抽取，受双闸门约束
+        return
+    try:
+        with st.spinner("正在全网搜索相关 JD…"):
+            found = search_client.search(query, bocha_key.strip() or None)
+        with st.spinner("AI 正在提取能力项…"):
+            new_job = job_analyzer.analyze_job(jd_text=found["text"])
+        # 元字段标注（与 server/main.py search_job 端点同口径）
+        new_job["job_id"] = "search"
+        new_job["source_note"] = f"AI 联网检索生成（{len(found['urls'])} 个网页摘要），请人工核验"
+        # P0-2 状态事务：与 _run_job_analysis 同一清场顺序，失败时旧状态原样保留
+        st.session_state["gap_report"] = None
+        st.session_state["rewrites"] = None
+        st.session_state["rewrite_failures"] = []
+        st.session_state["demo_resume_file"] = None
+        st.session_state["demo_bg"] = None
+        _clear_export_bytes()
+        st.session_state["job_req"] = new_job
+        st.session_state["search_urls"] = found["urls"]  # 来源链接，岗位画像区展示
+    except Exception as exc:
+        show_error(exc)
+
 
 def _run_job_analysis(job_id: str | None = None, jd_text: str | None = None,
                       demo_resume_file: str | None = None,
@@ -186,6 +230,7 @@ def _run_job_analysis(job_id: str | None = None, jd_text: str | None = None,
         st.session_state["rewrite_failures"] = []
         st.session_state["demo_resume_file"] = demo_resume_file  # None 即清空
         st.session_state["demo_bg"] = demo_bg                    # 固定背景随案例走
+        st.session_state["search_urls"] = None  # 非检索路径清空来源链接
         _clear_export_bytes()
         st.session_state["job_req"] = new_job
     except Exception as exc:
@@ -199,6 +244,12 @@ def section_job_profile() -> None:
         return
     st.header(f"岗位画像：{job['job_title']}")
     st.caption(f"信息来源：{job['source_note']}")
+    # AI 联网检索路径：来源链接可追溯展示（信息素养口径，与前端 JobProfile 一致）
+    search_urls = st.session_state.get("search_urls")
+    if job.get("job_id") == "search" and search_urls:
+        with st.expander(f"⚠️ AI 联网检索生成，请人工核验｜{len(search_urls)} 个来源网页", expanded=True):
+            for url in search_urls:
+                st.markdown(f"- {url}")
     if job["salary_hint"]:
         st.caption(f"薪资参考：{job['salary_hint']}")
     st.subheader("岗位职责")
@@ -401,6 +452,12 @@ def main() -> None:
             user_key = st.text_input("你的 DeepSeek API Key（可选）", type="password",
                                      help="产品化设计：每位用户使用自己的 Key。留空时使用内置开发配置。Key 只保存在当前会话内存中，不会被存储。")
         llm_client.set_runtime_api_key(user_key)
+        # 博查 Key（BYOK，与 DeepSeek 同逻辑）：仅"全网检索岗位"使用，
+        # 公网模式强制；本地模式留空由 search_client 回落团队 Key
+        bocha_key = st.text_input("你的博查 API Key（仅联网检索用）", type="password",
+                                  help="只有点「全网检索岗位」时才需要；不填也能用预设岗位库与粘贴 JD。"
+                                       "Key 只保存在当前会话内存中。")
+        st.session_state["user_bocha_key"] = bocha_key
         st.caption("运行模式："
                    + ("公网体验版（强制自带 Key）" if config.PUBLIC_MODE
                       else "演示缓存模式（断网可用）" if config.DEMO_CACHE_MODE else "联网模式")

@@ -140,6 +140,12 @@ export default function App() {
 
   /** AI 联网检索岗位：两段式步骤提示（搜索 → 提取），保险丝失败引导回预设库 */
   const runSearch = useCallback(async (query: string) => {
+    // 前端拦截（第八轮审查）：未填博查 Key 时不发请求，直接引导——
+    // 后端 extract_bocha_key 的 400 是兜底，前端先拦住体验更好
+    if (!creds.bochaKey.trim()) {
+      handleError(new ApiError(400, "请先在左侧填入你的博查 API Key，或改用预设岗位库 / 粘贴 JD（主功能不受影响）"));
+      return;
+    }
     setBusy(true); setError(null);
     setSearchStage("正在全网搜索相关 JD…");
     // 步骤提示的第二阶段：搜索与抽取是同一个请求，用定时器模拟阶段切换（纯 UI 提示）
