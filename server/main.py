@@ -258,6 +258,8 @@ async def export_resume(body: ExportResumeRequest,
     if body.lang == "en":
         check_session_quota(session_id)  # LLM 调用（resume_translate）
     resume = resume_from_wire(body.resume)
+    # 求职意向注入（v1.3）：界面层传入的当前岗位名 → 简历头部"求职意向"行
+    resume["job_intent"] = body.job_title.strip()
     pdf = await run_in_threadpool(
         resume_pdf.export_resume_pdf, resume, body.rewrites, body.lang)
     filename = "resume-zh.pdf" if body.lang == "zh" else "resume-en.pdf"

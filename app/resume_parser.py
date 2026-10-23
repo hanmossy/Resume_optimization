@@ -185,6 +185,7 @@ def structure_resume(raw_text: str, photo_bytes: bytes | None = None) -> ResumeD
     _combine_legacy_fields(data)
     data["raw_text"] = raw_text  # 原文回填，供 rewriter 引用（禁止 LLM 复述冒充原文）
     data["photo_bytes"] = photo_bytes
+    data["job_intent"] = ""  # 求职意向：LLM 不产出，导出时由界面层填入当前岗位名
     return data  # type: ignore[return-value]
 
 

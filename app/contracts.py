@@ -24,7 +24,7 @@ from typing import Any, Literal, TypedDict
 # ---------------------------------------------------------------------------
 
 # v1.2：resume_extract 升级为富结构 v2.0（name/contacts/entries），旧缓存自动失效
-SCHEMA_VERSION: str = "1.2"
+SCHEMA_VERSION: str = "1.3"
 
 # Gap 命中状态的合法取值，同时驱动 UI 三色标注（绿/黄/红）
 GapStatus = Literal["matched", "partial", "missing"]
@@ -135,16 +135,20 @@ class ResumeEntry(TypedDict):
 
 
 class ResumeData(TypedDict):
-    """简历供给侧的结构化数据（resume_parser 的输出契约，v2 扩展）。
+    """简历供给侧的结构化数据（resume_parser 的输出契约，v3 扩展）。
 
     v2 变更（简历 PDF 生成器需求）：
         - 新增 name / contacts / *_entries 富结构字段（LLM 直接产出）；
         - 原 education/internships/projects 字符串列表保留，由 resume_parser
           从 entries 组合生成（gap_matcher 的 payload 形状不变，纯函数可复现）。
+    v3 变更（第十轮指令模块二第 1 条）：
+        - 新增 job_intent 求职意向——LLM 不产出（与 raw_text 同性质），
+          由 resume_parser 回填空串，导出简历时由界面层填入当前岗位名称。
     """
 
     name: str  # 姓名（允许空串：部分简历未署名）
     contacts: list[str]  # 联系方式（电话/邮箱/其他，逐条）
+    job_intent: str  # 求职意向（非 LLM 产出：解析时为空串，导出时由界面补）
     education: list[str]  # 教育经历条目（由 education_entries 组合；界面展示时学校名脱敏）
     internships: list[str]  # 实习经历条目（由 internship_entries 组合）
     projects: list[str]  # 项目经历条目（由 project_entries 组合）
@@ -197,7 +201,7 @@ class RewriteResult(TypedDict):
 # 注意（P1-1 修订）：chat() 返回类型恒为 dict，列表型输出以 {"items": [...]} 包装。
 PROMPT_CONTRACTS: dict[str, tuple[str, str]] = {
     "job_extract": ("JobRequirements(无job_id/source_note，由调用方补)", "validate_job_requirements"),
-    "resume_extract": ("ResumeData(无raw_text，由调用方补)", "validate_resume_data"),
+    "resume_extract": ("ResumeData(无raw_text/job_intent，由调用方补)", "validate_resume_data"),
     "gap_judge": ('{"items": list[GapItem]}(无gap_id/importance，由调用方补)', "validate_gap_items"),
     "gap_rewrite": ("RewriteResult(无gap_id，由调用方补)", "validate_rewrite_result"),
     # 第三轮需求扩展：英文简历翻译，输入/输出同为 ResumeData 富结构（无raw_text/photo_bytes）
@@ -290,17 +294,21 @@ def _validate_entry_list(value: Any, field: str) -> None:
 
 
 def validate_resume_data(data: dict[str, Any]) -> None:
-    """校验 resume_extract 的 LLM 输出是否符合 ResumeData v2 富结构。
+    """校验 resume_extract 的 LLM 输出是否符合 ResumeData v3 富结构。
 
     Args:
-        data: llm_client 返回的 JSON dict（raw_text/photo_bytes 与字符串列表字段
-            由 resume_parser 补齐，此处只校验 LLM 直接产出的富结构字段）。
+        data: llm_client 返回的 JSON dict（raw_text/photo_bytes/job_intent 与字符串
+            列表字段由调用方补齐，此处只校验 LLM 直接产出的富结构字段；
+            job_intent 仅 resume_translate v1.2 起由 LLM 产出——存在时校验类型，
+            缺失不报错，由调用方透传兜底）。
 
     Raises:
         LLMOutputError: 字段缺失、类型错误或条目结构不合法。
     """
     # 姓名允许空串（简历可能未署名），但必须存在且为字符串
     _require(isinstance(data.get("name"), str), "name 缺失或非字符串")
+    if "job_intent" in data:
+        _require(isinstance(data["job_intent"], str), "job_intent 非字符串")
     contacts = data.get("contacts")
     _require(isinstance(contacts, list) and all(isinstance(c, str) for c in contacts),
              "contacts 缺失或含非字符串元素")

@@ -3,11 +3,14 @@
 【模块说明】
     第三轮需求扩展（团队拍板）：导出物在"诊断报告"之外，新增"排版后的正式
     修改版简历"，中文版 + 英文版（面向投递外企场景）。
-    排版规格（团队提供的视觉稿）：
+    排版规格（团队提供的视觉稿 + 第十轮专业化升级）：
         - A4 版面，目标单页（内容溢出时自然分页，不截断、不丢信息）；
         - 姓名超大粗体（左上），证件照右上（从旧 PDF 提取复用，无照片则省略）；
+        - 姓名下方醒目展示"求职意向"（job_intent，导出时由界面传入当前岗位名）；
         - 联系信息双列；分节标题粗体 + 粗黑分割线；
-        - 经历条目"组织名 | 职位 | 时间"三栏布局；要点以 ➢ 符号逐条列出。
+        - 经历条目"组织名 | 职位 | 时间"三栏布局，全部按时间倒序（最近的在最前）；
+        - 要点以 ➢ 符号逐条列出，行首【小标题】加粗渲染（HR 扫读锚点）；
+        - 不渲染"自我评价"（resume_extract 已不提取该区块），不印任何内部过程提示。
     改写应用策略：
         先按 normalize 匹配把 rewrites 应用到富结构条目（纯函数，可单测），
         英文版在"改写之后"整体翻译（只翻译一次，保证中英内容一致）。
@@ -46,9 +49,45 @@ _SECTIONS = {
            ("project_entries", "PROJECTS")],
 }
 _SKILLS_TITLE = {"zh": "技能证书", "en": "SKILLS"}
+_INTENT_LABEL = {"zh": "求职意向", "en": "Career Objective"}
+
+# 经历时间倒序：period 尾部的年月作为排序键（如 "2023.07-2023.09" → (2023, 9)）
+_PERIOD_DATE_RE = re.compile(r"(\d{4})\s*[./年-]\s*(\d{1,2})")
+_PRESENT_WORDS = ("至今", "现在", "present", "now", "current")
 
 # 改写匹配允许的最低重叠度（防止 example_before 与 bullet 仅个别字相同就误替换）
 _MIN_OVERLAP_CHARS = 8
+
+
+def _period_sort_key(period: str) -> tuple[int, int, int]:
+    """从时间段文本提取倒序排序键（越大越新）。
+
+    规则（专业简历惯例：最近经历排最前）：
+        - 含"至今/present"等词 → 最大键（ ongoing 经历永远最前）；
+        - 取 period 中**最后一个**年月（结束时间，如 "2023.07-2023.09" → 2023.09）；
+          只有单个年月时用它本身；
+        - 完全无法解析 → 最小键（排在最后，稳定排序保持原相对顺序）。
+
+    Returns:
+        (是否可解析, 年, 月) 三元组，可直接用于 sorted(key=..., reverse=True)。
+    """
+    text = period.strip().lower()
+    if any(w in text for w in _PRESENT_WORDS):
+        return (2, 9999, 12)  # 进行中：永远排最前
+    matches = _PERIOD_DATE_RE.findall(text)
+    if not matches:
+        return (0, 0, 0)  # 不可解析：排最后
+    year, month = matches[-1]  # 结束时间代表"最近程度"
+    return (1, int(year), int(month))
+
+
+def _sort_entries_desc(entries: list[ResumeEntry]) -> list[ResumeEntry]:
+    """经历条目按时间倒序排列（纯函数，不修改入参）。
+
+    应用于教育/实习/项目全部分节（第十轮指令模块二第 3 条）。
+    稳定排序：时间相同或都不可解析的条目保持原有相对顺序。
+    """
+    return sorted(entries, key=lambda e: _period_sort_key(e["period"]), reverse=True)
 
 
 def _normalize(text: str) -> str:
@@ -141,6 +180,7 @@ def translate_resume(resume: ResumeData) -> ResumeData:
     payload = {  # 只传 LLM 产出的字段；sort_keys 保证缓存键稳定
         "name": resume["name"],
         "contacts": resume["contacts"],
+        "job_intent": resume.get("job_intent", ""),  # 求职意向随简历整体翻译（v1.2 新增）
         "education_entries": resume["education_entries"],
         "internship_entries": resume["internship_entries"],
         "project_entries": resume["project_entries"],
@@ -151,6 +191,9 @@ def translate_resume(resume: ResumeData) -> ResumeData:
     validate_resume_data(data)
     data["raw_text"] = resume["raw_text"]
     data["photo_bytes"] = resume["photo_bytes"]
+    # 求职意向透传兜底：翻译漏字段时保留原文（宁缺翻译，不丢信息）
+    if not isinstance(data.get("job_intent"), str) or not data["job_intent"].strip():
+        data["job_intent"] = resume.get("job_intent", "")
     _combine_legacy(data)
     return data  # type: ignore[return-value]
 
@@ -202,6 +245,23 @@ def _esc(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+# bullet 行首小标题标记：【小标题】具体职责与业绩（gap_rewrite v1.1 输出约定）；
+# 英文版由 resume_translate v1.2 转写为 [Headline] 格式，一并识别
+_HEADLINE_RE = re.compile(r"^(【[^【】]{1,20}】|\[[^\[\]]{1,30}\])(.*)$", re.S)
+
+
+def _bullet_html(bullet: str, bold_font: str) -> str:
+    """bullet → Paragraph HTML：行首【小标题】用粗体字体渲染，其余正文常规字体。
+
+    无小标题的 bullet（未被改写命中的原文条目）原样转义返回——
+    排版层只做"识别与强调"，不替 LLM 补写小标题（内容权在 LLM，排版权在本模块）。
+    """
+    m = _HEADLINE_RE.match(bullet.strip())
+    if not m:
+        return _esc(bullet)
+    return f'<font name="{bold_font}">{_esc(m.group(1))}</font>{_esc(m.group(2))}'
+
+
 def export_resume_pdf(resume: ResumeData, rewrites: list[RewriteResult], lang: str = "zh") -> bytes:
     """生成排版后的正式简历 PDF（中文或英文版）。
 
@@ -224,6 +284,7 @@ def export_resume_pdf(resume: ResumeData, rewrites: list[RewriteResult], lang: s
     # 1) 先应用改写（中文富结构上），保证中英两版内容一致
     data: ResumeData = {
         "name": resume["name"], "contacts": list(resume["contacts"]),
+        "job_intent": resume.get("job_intent", ""),  # 求职意向（调用方传入，LLM 不产出）
         "education": [], "internships": [], "projects": [],
         "skills": list(resume["skills"]),
         "education_entries": list(resume["education_entries"]),
@@ -231,11 +292,9 @@ def export_resume_pdf(resume: ResumeData, rewrites: list[RewriteResult], lang: s
         "project_entries": list(resume["project_entries"]),
         "photo_bytes": resume["photo_bytes"], "raw_text": resume["raw_text"],
     }
-    applied_all: list[str] = []
     for field in ("education_entries", "internship_entries", "project_entries"):
-        new_list, ids = apply_rewrites(data[field], rewrites)  # type: ignore[literal-required]
+        new_list, _ids = apply_rewrites(data[field], rewrites)  # type: ignore[literal-required]
         data[field] = new_list  # type: ignore[literal-required]
-        applied_all.extend(ids)
 
     # 2) 英文版：改写之后整体翻译（LLM 调用，缓存键由富结构决定）
     if lang == "en":
@@ -291,6 +350,17 @@ def export_resume_pdf(resume: ResumeData, rewrites: list[RewriteResult], lang: s
                                     ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
         story.append(header)
 
+        # ---- 求职意向（第十轮指令模块二第 1 条：姓名/联系方式下方的醒目展示）----
+        intent = (data.get("job_intent") or "").strip()
+        if intent:
+            intent_style = ParagraphStyle("intent", fontName=font, fontSize=10, leading=14,
+                                          wordWrap="CJK", spaceBefore=2)
+            story.append(Paragraph(
+                f'<font name="{bold}">{_esc(_INTENT_LABEL[lang])}：</font>{_esc(intent)}'
+                if lang == "zh" else
+                f'<font name="{bold}">{_esc(_INTENT_LABEL[lang])}:</font> {_esc(intent)}',
+                intent_style))
+
         # ---- 联系信息：双列 ----
         contacts = [c for c in data["contacts"] if c.strip()]
         if contacts:
@@ -328,7 +398,9 @@ def export_resume_pdf(resume: ResumeData, rewrites: list[RewriteResult], lang: s
             for b in entry["bullets"]:
                 if b.strip():
                     # ➢ 由 DejaVu 符号字体整格渲染（思源黑体无该字模），正文列仍用 CJK 字体
-                    bt = Table([[Paragraph("➢", sym_style), Paragraph(_esc(b), bullet_style)]],
+                    # 第十轮模块二第 2 条：bullet 行首【小标题】加粗渲染（HR 扫读锚点）
+                    bt = Table([[Paragraph("➢", sym_style),
+                                 Paragraph(_bullet_html(b, bold), bullet_style)]],
                                colWidths=[5 * mm, usable_width - 5 * mm])
                     bt.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0),
                                             ("RIGHTPADDING", (0, 0), (-1, -1), 0),
@@ -337,9 +409,9 @@ def export_resume_pdf(resume: ResumeData, rewrites: list[RewriteResult], lang: s
                                             ("VALIGN", (0, 0), (-1, -1), "TOP")]))
                     story.append(bt)
 
-        # ---- 三段经历分节 ----
+        # ---- 三段经历分节（时间倒序：最近经历排最前，专业简历惯例）----
         for field, title_text in _SECTIONS[lang]:
-            entries = data[field]  # type: ignore[literal-required]
+            entries = _sort_entries_desc(data[field])  # type: ignore[literal-required]
             if not entries:
                 continue  # 空分节直接省略（简历惯例：没有的经历不占版面）
             _section(title_text)
@@ -352,15 +424,8 @@ def export_resume_pdf(resume: ResumeData, rewrites: list[RewriteResult], lang: s
             sep = " ｜ " if lang == "zh" else " | "
             story.append(Paragraph(_esc(sep.join(data["skills"])), skill_style))
 
-        # ---- 未应用改写提示（透明度：哪些建议需人工手动应用）----
-        not_applied = [rw["gap_id"] for rw in rewrites if rw["gap_id"] not in applied_all]
-        if not_applied and lang == "zh":
-            # 英文简历不带此提示（对外投递物不放内部过程信息）
-            note = ParagraphStyle("note", fontName=font, fontSize=8, leading=11,
-                                  textColor="#666666", spaceBefore=6)
-            story.append(Paragraph(
-                f"注：{len(not_applied)} 条改写建议未自动并入本简历（原文未精确命中），"
-                "请参考诊断报告手动修改。", note))
+        # 注意（第十轮指令模块一）：简历 PDF 是对外投递物，绝不印任何
+        # 产品内部过程提示（如"N 条改写未并入"）——该类提示只出现在应用前端。
 
         buf = io.BytesIO()
         doc = SimpleDocTemplate(buf, pagesize=A4,

@@ -252,9 +252,11 @@ def section_job_profile() -> None:
                 st.markdown(f"- {url}")
     if job["salary_hint"]:
         st.caption(f"薪资参考：{job['salary_hint']}")
-    st.subheader("岗位职责")
-    for r in job["responsibilities"]:
-        st.markdown(f"- {r}")
+    # 岗位职责收进 Expander（第十轮 UI 优化：职责长短不一导致左右分栏失衡，
+    # 收起后把主要视觉空间留给能力要求清单——后者才是 Gap 对照的主体）
+    with st.expander(f"岗位职责（{len(job['responsibilities'])} 条，点击展开）"):
+        for r in job["responsibilities"]:
+            st.markdown(f"- {r}")
     st.subheader("能力要求清单")
     for ab in job["abilities"]:
         st.markdown(
@@ -401,6 +403,10 @@ def section_result() -> None:
     # 前置条件：必须有简历数据；改写可有可无（无改写则导出原文排版版）
     resume_data = st.session_state.get("resume_data")
     if resume_data:
+        # 求职意向注入（第十轮指令）：当前选中岗位名 → 简历头部"求职意向"行
+        job = st.session_state.get("job_req")
+        resume_for_export = dict(resume_data)
+        resume_for_export["job_intent"] = job["job_title"] if job else ""
         st.subheader("导出修改后简历（排版版）")
         st.caption("已命中的改写建议会自动并入；英文版面向投递外企场景，由 AI 在改写后整体翻译。")
         col_zh, col_en = st.columns(2)
@@ -409,7 +415,7 @@ def section_result() -> None:
                 try:
                     with st.spinner("正在排版中文简历…"):
                         st.session_state["resume_zh_bytes"] = resume_pdf.export_resume_pdf(
-                            resume_data, rewrites or [], lang="zh")
+                            resume_for_export, rewrites or [], lang="zh")
                 except Exception as exc:
                     show_error(exc)
             if st.session_state.get("resume_zh_bytes"):
@@ -421,7 +427,7 @@ def section_result() -> None:
                 try:
                     with st.spinner("正在翻译并排版英文简历…"):
                         st.session_state["resume_en_bytes"] = resume_pdf.export_resume_pdf(
-                            resume_data, rewrites or [], lang="en")
+                            resume_for_export, rewrites or [], lang="en")
                 except Exception as exc:
                     show_error(exc)
             if st.session_state.get("resume_en_bytes"):

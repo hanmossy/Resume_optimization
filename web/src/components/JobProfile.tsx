@@ -35,30 +35,33 @@ export default function JobProfile({ job, searchUrls }: Props) {
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-600">岗位职责</h3>
-          <ul className="space-y-1.5 text-sm text-slate-600">
-            {job.responsibilities.map((r, i) => (
-              <li key={i} className="flex gap-2"><span className="text-brand">·</span>{r}</li>
-            ))}
-          </ul>
+      {/* 岗位职责：顶部通栏（Tag 流式布局），不再与能力清单左右挤占（第十轮 UI 优化） */}
+      <div className="mb-4">
+        <h3 className="mb-2 text-sm font-semibold text-slate-600">岗位职责</h3>
+        <div className="flex flex-wrap gap-2">
+          {job.responsibilities.map((r, i) => (
+            <span key={i} className="rounded-full bg-indigo-50 px-3 py-1.5 text-sm text-slate-700">
+              {r}
+            </span>
+          ))}
         </div>
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-slate-600">能力要求清单（{job.abilities.length} 项）</h3>
-          <ul className="space-y-2">
-            {job.abilities.map((ab, i) => (
-              <li key={i} className="rounded-lg bg-slate-50 px-3 py-2">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-medium">{ab.name}</span>
-                  <span className="rounded bg-white px-1.5 py-0.5 text-xs text-slate-500">{ab.category}</span>
-                  <span className="text-xs text-amber-500">{"★".repeat(ab.importance)}</span>
-                  <span className="text-xs text-slate-400">{ab.importance_source}</span>
-                </div>
-                <p className="mt-1 text-xs text-slate-400">JD 依据：{ab.evidence}</p>
-              </li>
-            ))}
-          </ul>
+      </div>
+
+      {/* 能力要求清单：全宽两/三列网格卡片（解决原左右分栏"左空右挤"问题） */}
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-slate-600">能力要求清单（{job.abilities.length} 项）</h3>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {job.abilities.map((ab, i) => (
+            <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 transition hover:shadow-card">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium">{ab.name}</span>
+                <span className="rounded bg-white px-1.5 py-0.5 text-xs text-slate-500">{ab.category}</span>
+                <span className="text-xs text-amber-500">{"★".repeat(ab.importance)}</span>
+                <span className="text-xs text-slate-400">{ab.importance_source}</span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">JD 依据：{ab.evidence}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

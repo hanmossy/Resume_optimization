@@ -30,14 +30,14 @@ export default function ExportPanel({ job, resume, report, rewrites, onError }: 
       buildBody: () => ({ job, report, rewrites }),
     },
     {
-      key: "zh", title: "修改后简历（中文）", desc: "按正式简历版式排版，已命中的改写自动并入",
+      key: "zh", title: "修改后简历（中文）", desc: "按正式简历版式排版，已命中的改写自动并入，含求职意向",
       path: "/api/export-resume", filename: "修改后简历-中文.pdf",
-      buildBody: () => ({ resume, rewrites, lang: "zh" }),
+      buildBody: () => ({ resume, rewrites, lang: "zh", job_title: job.job_title }),
     },
     {
       key: "en", title: "English Resume", desc: "面向外企投递场景，AI 在改写后整体翻译",
       path: "/api/export-resume", filename: "Resume-EN.pdf",
-      buildBody: () => ({ resume, rewrites, lang: "en" }),
+      buildBody: () => ({ resume, rewrites, lang: "en", job_title: job.job_title }),
     },
   ];
 

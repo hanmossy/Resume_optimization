@@ -63,11 +63,16 @@ class ExportReportRequest(BaseModel):
 
 
 class ExportResumeRequest(BaseModel):
-    """简历导出请求（中英双语）。"""
+    """简历导出请求（中英双语）。
+
+    job_title（v1.3 新增）：导出时注入简历的"求职意向"字段——
+    界面层传入当前选中岗位的名称（含 AI 检索生成的岗位）。
+    """
 
     resume: dict[str, Any]
     rewrites: list[dict[str, Any]] = []
     lang: str = "zh"  # zh / en
+    job_title: str = ""
 
 
 def resume_from_wire(data: dict[str, Any]) -> dict[str, Any]:

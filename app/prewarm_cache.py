@@ -109,12 +109,15 @@ def main() -> int:
                 # 第三轮需求扩展：英文简历翻译也须预热（LLM：resume_translate）。
                 # 直接调用与 main.py 相同的 export_resume_pdf 路径——缓存键由
                 # "已应用改写的富结构"决定，路径一致是"预热成功=演示命中"的前提；
+                # v1.3（第十轮）：界面导出时会注入 job_intent=当前岗位名，
+                # 预热必须同样注入，否则演示时翻译缓存键不同、必然 CacheMiss；
                 # 顺带把样本 PDF 落盘到 实验结果/ 供拍摄前肉眼验收（虚构数据，可外传）。
                 samples_dir = config.PROJECT_ROOT / "实验结果"
                 samples_dir.mkdir(exist_ok=True)
-                zh_bytes = resume_pdf.export_resume_pdf(resume, results, lang="zh")  # 纯排版，无 LLM
+                resume_with_intent = dict(resume, job_intent=job["job_title"])
+                zh_bytes = resume_pdf.export_resume_pdf(resume_with_intent, results, lang="zh")  # 纯排版，无 LLM
                 (samples_dir / f"简历样本-{label}-中文.pdf").write_bytes(zh_bytes)
-                en_bytes = resume_pdf.export_resume_pdf(resume, results, lang="en")  # LLM：resume_translate
+                en_bytes = resume_pdf.export_resume_pdf(resume_with_intent, results, lang="en")  # LLM：resume_translate
                 (samples_dir / f"简历样本-{label}-英文.pdf").write_bytes(en_bytes)
                 print(f"  中英简历样本已落盘（中文 {len(zh_bytes)//1024}KB / 英文 {len(en_bytes)//1024}KB）")
                 # 差量记录本案例新增的缓存文件（基准=案例级快照，含各阶段好缓存）

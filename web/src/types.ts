@@ -28,6 +28,7 @@ export interface ResumeEntry {
 export interface ResumeData {
   name: string;
   contacts: string[];
+  job_intent: string; // 求职意向（解析时为空串，导出时由界面注入当前岗位名）
   education: string[];
   internships: string[];
   projects: string[];
