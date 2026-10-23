@@ -76,6 +76,8 @@ def _load_job_file(path: Path) -> JobRequirements:
     # 可选字段补默认值，保证下游拿到的结构完整
     data.setdefault("salary_hint", "")
     data.setdefault("source_note", "待人工核验")
+    for ab in data["abilities"]:
+        ab.setdefault("is_core", False)  # v1.4：未标注核心项的岗位默认无门槛否决
     return data  # type: ignore[return-value]
 
 
@@ -161,4 +163,5 @@ def analyze_job(job_id: str | None = None, jd_text: str | None = None) -> JobReq
     data.setdefault("salary_hint", "")  # LLM 不得在 JD 无薪资信息时编造（扣分项②防线）
     for ab in data["abilities"]:
         ab["importance_source"] = "LLM评估"
+        ab.setdefault("is_core", False)  # v1.4：LLM 未标核心项时默认 False（保守无否决）
     return data  # type: ignore[return-value]

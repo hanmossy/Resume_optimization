@@ -90,11 +90,19 @@ def align_items(llm_items: list[dict[str, Any]], abilities: list[AbilityItem], j
                 f"第 {i + 1} 项按位置兜底对齐（AI:{raw['ability']!r} / 基准:{ab['name']!r}），已采用基准名")
 
         if raw is not None:
+            # v1.4：evidence_strength 缺省兜底 "weak"（保守降分方向）并显式告警
+            strength = raw.get("evidence_strength")
+            if strength is None:
+                strength = "weak"
+                warnings.append(f"AI 未返回能力项 {ab['name']!r} 的证据强度，已按 weak（弱证据）处理")
             items.append(GapItem(
                 gap_id=gap_id,
                 ability=ab["name"],
                 status=raw["status"],
+                evidence_strength=strength,
                 importance=ab["importance"],
+                category=ab["category"],
+                is_core=ab.get("is_core", False),
                 reason=raw["reason"],
             ))
         else:
@@ -103,7 +111,10 @@ def align_items(llm_items: list[dict[str, Any]], abilities: list[AbilityItem], j
                 gap_id=gap_id,
                 ability=ab["name"],
                 status="missing",
+                evidence_strength="weak",  # 无证据可言，恒为 weak
                 importance=ab["importance"],
+                category=ab["category"],
+                is_core=ab.get("is_core", False),
                 reason="AI 未返回该项判断，按未命中处理",
             ))
 
@@ -114,68 +125,109 @@ def align_items(llm_items: list[dict[str, Any]], abilities: list[AbilityItem], j
     return items, warnings
 
 
-def compute_score(items: list[GapItem]) -> int:
-    """规则通道评分（纯函数，公式写死，给定相同 status 序列逐位可复现）。
+def hit_coefficient(status: str, strength: str) -> float:
+    """命中系数（v1.4 防虚高）：状态 × 证据强度二维决定。
 
-    公式：单能力项得分 = importance × 命中系数(matched=1.0/partial=0.5/missing=0.0)
-          匹配度 = Σ单项得分 / Σimportance × 100，四舍五入取整。
-    系数唯一来源为 config.MATCH_COEFFICIENTS，禁止在本模块硬编码其他权重。
+    matched+strong=1.0（有数据有深度）/ matched+weak=0.7（沾边降档）/
+    partial=0.4 / missing=0.0。系数唯一来源为 config.HIT_COEF。
+    """
+    coef = config.HIT_COEF[status]
+    if isinstance(coef, dict):  # matched 分强弱证据两档
+        return coef["strong" if strength == "strong" else "weak"]
+    return coef
+
+
+def item_weight(item: GapItem) -> float:
+    """单项权重（v1.4 软技能降权）：软技能重要度打 5 折，其余原价。"""
+    w = float(item["importance"])
+    if item["category"] == "软技能":
+        w *= config.SOFT_SKILL_WEIGHT_DISCOUNT
+    return w
+
+
+def raw_score(items: list[GapItem]) -> float:
+    """加权原始分（未应用核心项否决）：Σ(权重×系数)/Σ权重×100。"""
+    total_weight = sum(item_weight(it) for it in items)
+    if total_weight <= 0:
+        return 0.0
+    earned = sum(item_weight(it) * hit_coefficient(it["status"], it["evidence_strength"])
+                 for it in items)
+    return earned / total_weight * 100
+
+
+def compute_score(items: list[GapItem]) -> tuple[int, bool, list[str]]:
+    """规则通道评分（纯函数，公式写死，给定相同输入逐位可复现）。
+
+    v1.4 公式（第十一轮指令，防虚高）：
+        1. 原始分 = Σ(权重×命中系数) / Σ权重 × 100，权重含软技能 5 折；
+        2. 核心项一票否决：任一 is_core 项 partial/missing →
+           总分 = min(round(原始分 × 0.6), 60)。
 
     Args:
         items: 对齐后的 GapItem 列表。
 
     Returns:
-        0-100 的整数匹配度。
+        (最终匹配度 0-100, 是否触发核心惩罚, 未达标核心项名列表)。
     """
-    total_weight = sum(it["importance"] for it in items)
-    if total_weight <= 0:
-        return 0
-    earned = sum(it["importance"] * config.MATCH_COEFFICIENTS[it["status"]] for it in items)
-    return round(earned / total_weight * 100)
+    failed_core = [it["ability"] for it in items
+                   if it["is_core"] and it["status"] in ("partial", "missing")]
+    raw = raw_score(items)
+    if failed_core:
+        return min(round(raw * config.CORE_PENALTY_FACTOR), config.CORE_SCORE_CAP), True, failed_core
+    return round(raw), False, []
 
 
 def score_breakdown(items: list[GapItem]) -> dict[str, Any]:
     """运算过程明细化：把 compute_score 的加权过程逐项摊开（纯函数）。
 
     用途（第七轮审查 + 团队战略调整）：比赛考察"人机协同"与运算透明度，
-    前端"查看运算过程"面板需要逐项展示 重要度 × 命中系数 = 单项得分。
-    系数与公式唯一来源仍是本模块——前端只渲染、不复算，避免两处口径漂移。
+    前端"查看运算过程"面板需要逐项展示 权重 × 命中系数 = 单项得分。
+    v1.4：明细新增证据强度、软技能折扣、核心项否决行——系数与公式
+    唯一来源仍是本模块，前端只渲染、不复算，避免两处口径漂移。
 
     Args:
         items: 对齐后的 GapItem 列表（与 compute_score 同一输入）。
 
     Returns:
-        {"coefficients": 系数表副本, "items": 逐项明细（含 coefficient/earned）,
-         "total_weight": 权重和, "total_earned": 得分和, "match_score": 0-100}
-        match_score 与 compute_score(items) 逐位一致（同一公式同一数据）。
+        {"items": 逐项明细（含 weight/coefficient/earned/strength/软技能标记）,
+         "total_weight"/"total_earned"/"raw_score": 原始分汇总,
+         "core_penalty_applied"/"core_gap_abilities"/"match_score": 终审结果，
+         match_score 与 compute_score(items) 逐位一致（同一公式同一数据）。}
     """
     detail_items = []
     for it in items:
-        coef = config.MATCH_COEFFICIENTS[it["status"]]
+        weight = item_weight(it)
+        coef = hit_coefficient(it["status"], it["evidence_strength"])
         detail_items.append({
             "gap_id": it["gap_id"],
             "ability": it["ability"],
             "importance": it["importance"],
+            "weight": round(weight, 2),  # 软技能 5 折后的实际权重
+            "soft_discounted": it["category"] == "软技能",
+            "is_core": it["is_core"],
             "status": it["status"],
+            "evidence_strength": it["evidence_strength"],
             "coefficient": coef,
-            "earned": round(it["importance"] * coef, 2),  # 单项得分，保留两位防浮点长尾
+            "earned": round(weight * coef, 2),  # 单项得分，保留两位防浮点长尾
         })
-    total_weight = sum(it["importance"] for it in items)
-    total_earned = round(sum(d["earned"] for d in detail_items), 2)
+    score, applied, failed_core = compute_score(items)
     return {
-        "coefficients": dict(config.MATCH_COEFFICIENTS),
         "items": detail_items,
-        "total_weight": total_weight,
-        "total_earned": total_earned,
-        "match_score": compute_score(items),
+        "total_weight": round(sum(d["weight"] for d in detail_items), 2),
+        "total_earned": round(sum(d["earned"] for d in detail_items), 2),
+        "raw_score": round(raw_score(items), 1),
+        "core_penalty_applied": applied,
+        "core_gap_abilities": failed_core,
+        "match_score": score,
     }
 
 
 def select_top_gaps(items: list[GapItem], count: int = config.TOP_GAPS_COUNT) -> list[GapItem]:
     """选出最值得改写的 Top-N Gap（纯函数，可单测）。
 
-    排序键 = importance × (1 - 命中系数)：重要度高且缺失度深的排前面。
-    matched 项排序键为 0，自然沉底且不会被选入（改写只针对 Gap）。
+    排序键 = 权重 × (1 - 命中系数)：重要度高且缺失度深的排前面（v1.4：
+    权重与系数与评分公式同源，软技能折扣与证据强度降档同步生效）。
+    matched 项排序键 ≥0 但通常最低，自然沉底（改写只针对 Gap）。
 
     Args:
         items: 对齐后的 GapItem 列表。
@@ -185,7 +237,7 @@ def select_top_gaps(items: list[GapItem], count: int = config.TOP_GAPS_COUNT) ->
         按改写价值降序的 GapItem 子列表，长度 ≤ count。
     """
     candidates = [it for it in items if it["status"] != "matched"]
-    candidates.sort(key=lambda it: it["importance"] * (1 - config.MATCH_COEFFICIENTS[it["status"]]),
+    candidates.sort(key=lambda it: item_weight(it) * (1 - hit_coefficient(it["status"], it["evidence_strength"])),
                     reverse=True)
     return candidates[:count]
 
@@ -213,7 +265,8 @@ def diagnose(job: JobRequirements, resume: ResumeData,
     payload: dict[str, Any] = {
         "job_title": job["job_title"],
         "abilities": [{"name": ab["name"], "category": ab["category"],
-                       "importance": ab["importance"], "evidence": ab["evidence"]}
+                       "importance": ab["importance"], "evidence": ab["evidence"],
+                       "is_core": ab.get("is_core", False)}  # v1.4：核心项标记供判断参考
                       for ab in job["abilities"]],
         "resume": {k: resume[k] for k in ("education", "internships", "projects", "skills")},
     }
@@ -226,9 +279,12 @@ def diagnose(job: JobRequirements, resume: ResumeData,
     validate_gap_items(raw_items, expected_count=len(job["abilities"]))
 
     items, warnings = align_items(raw_items, job["abilities"], job["job_id"])
+    score, penalty_applied, failed_core = compute_score(items)
     return GapReport(
-        match_score=compute_score(items),
+        match_score=score,
         items=items,
         top_gaps=select_top_gaps(items),
         warnings=warnings,
+        core_penalty_applied=penalty_applied,
+        core_gap_abilities=failed_core,
     )

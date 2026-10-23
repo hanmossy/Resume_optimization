@@ -12,35 +12,40 @@
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "具备文案写作与内容策划能力"
+      "evidence": "具备文案写作与内容策划能力",
+      "is_core": true
     },
     {
       "name": "数据复盘意识",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "能用数据复盘运营效果"
+      "evidence": "能用数据复盘运营效果",
+      "is_core": false
     },
     {
       "name": "网感与热点敏感",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "熟悉主流内容平台生态"
+      "evidence": "熟悉主流内容平台生态",
+      "is_core": false
     },
     {
       "name": "执行力",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "执行力强，能推进多任务并行"
+      "evidence": "执行力强，能推进多任务并行",
+      "is_core": false
     },
     {
       "name": "本科在读及以上",
       "category": "背景门槛",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "本科及以上学历在读"
+      "evidence": "本科及以上学历在读",
+      "is_core": false
     }
   ],
   "salary_hint": "",

@@ -136,6 +136,11 @@ def export_pdf(
         story.append(Paragraph("简历诊断报告", title))
         story.append(Paragraph(f"目标岗位：{_escape(job['job_title'])}（{_escape(job['company_type'])}）", body))
         story.append(Paragraph(f"整体匹配度：{report['match_score']} / 100", body))
+        # v1.4：核心门槛否决须写入报告（诊断报告是内部文档，透明度优先）
+        if report.get("core_penalty_applied"):
+            story.append(Paragraph(
+                f"⚠️ 核心门槛未达标：缺少【{_escape('、'.join(report['core_gap_abilities']))}】"
+                "能力，总分已 ×0.6 且封顶 60 分。", body))
         story.append(Paragraph(f"生成时间：{datetime.now():%Y-%m-%d %H:%M}", small))
         story.append(Spacer(1, 4 * mm))
 
@@ -144,7 +149,8 @@ def export_pdf(
         for r in job["responsibilities"]:
             story.append(Paragraph(f"· 职责：{_escape(r)}", indent))
         story.append(Paragraph(
-            f"评分口径：各能力项重要度 × 命中系数（已具备 1.0 / 部分匹配 0.5 / 缺失 0.0）加权求和", small))
+            f"评分口径：Σ(权重 × 命中系数) ÷ Σ权重 × 100｜系数：已具备(强证据) 1.0 / "
+            f"已具备(弱证据) 0.7 / 部分匹配 0.4 / 缺失 0.0｜软技能权重 5 折", small))
 
         # ---- 3. Gap 对照清单 ----
         story.append(Paragraph("二、能力项对照（岗位需求 ↔ 简历命中）", h2))

@@ -285,11 +285,15 @@ def section_diagnose() -> None:
                                 disabled=demo_mode)
     pasted = st.text_area("或直接粘贴简历文本（扫描件 PDF 请走这里）", height=120,
                           disabled=demo_mode)
-    cols = st.columns(3)
-    grade = cols[0].selectbox("年级", ["大一", "大二", "大三", "大四", "研究生"],
-                              disabled=demo_mode)
-    major = cols[1].text_input("专业", disabled=demo_mode)
-    goal = cols[2].selectbox("目标", ["实习", "求职"], disabled=demo_mode)
+    # 背景信息收进带说明标题的容器（第十一轮 UI 指令：降低表单压迫感，
+    # 并让用户知道"填了有什么用"——AI 按阶段调整评估基线）
+    with st.container(border=True):
+        st.caption("**补充背景信息**（选填，AI 将根据你的阶段调整评估标准）")
+        cols = st.columns(3)
+        grade = cols[0].selectbox("年级", ["大一", "大二", "大三", "大四", "研究生"],
+                                  disabled=demo_mode)
+        major = cols[1].text_input("专业", disabled=demo_mode)
+        goal = cols[2].selectbox("目标", ["实习", "求职"], disabled=demo_mode)
 
     if st.button("开始诊断", type="primary"):
         # 演示路径用注册表固定背景；自由路径用用户输入
@@ -358,15 +362,27 @@ def section_result() -> None:
     st.header("诊断结果")
 
     st.metric("简历与岗位匹配度", f"{report['match_score']} / 100")
-    st.caption("评分口径：各能力项重要度 × 命中系数（已具备 1.0 / 部分匹配 0.5 / 缺失 0.0）加权求和")
+    st.caption("评分口径：Σ(权重 × 命中系数) ÷ Σ权重 × 100｜系数：已具备(强证据) 1.0 / "
+               "已具备(弱证据) 0.7 / 部分匹配 0.4 / 缺失 0.0｜软技能权重 5 折｜"
+               "核心门槛未达标总分 ×0.6 且封顶 60")
+
+    # v1.4 核心项否决警示（第十一轮指令：红色提示行，必须显眼）
+    if report.get("core_penalty_applied"):
+        st.error(f"⚠️ 核心门槛未达标：缺少【{'、'.join(report['core_gap_abilities'])}】"
+                 "能力，导致整体匹配度受限（总分 ×0.6 且封顶 60 分）。")
 
     # 左右对照视图：左=岗位能力项（需求侧），右=简历命中情况（供给侧）
     st.subheader("能力对照")
     for it in report["items"]:
         color, label = STATUS_STYLE[it["status"]]
         left, right = st.columns(2)
-        left.markdown(f"**{it['ability']}**（重要度 {'★' * it['importance']}）")
-        right.markdown(f"<span style='color:{color};font-weight:bold'>{label}</span>：{it['reason']}",
+        core_mark = "｜🎯 核心门槛" if it.get("is_core") else ""
+        left.markdown(f"**{it['ability']}**（重要度 {'★' * it['importance']}{core_mark}）")
+        # v1.4：matched 项标注证据强度（强/弱），弱证据是降档系数的直接原因
+        strength_mark = ""
+        if it["status"] == "matched":
+            strength_mark = "（强证据）" if it.get("evidence_strength") == "strong" else "（弱证据）"
+        right.markdown(f"<span style='color:{color};font-weight:bold'>{label}{strength_mark}</span>：{it['reason']}",
                        unsafe_allow_html=True)
     for w in report["warnings"]:
         st.caption(f"⚠️ {w}")

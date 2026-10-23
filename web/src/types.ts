@@ -6,6 +6,7 @@ export interface AbilityItem {
   importance: number;
   importance_source: string;
   evidence: string;
+  is_core: boolean; // v1.4：核心硬性能力（partial/missing 触发总分否决）
 }
 
 export interface JobRequirements {
@@ -41,12 +42,16 @@ export interface ResumeData {
 }
 
 export type GapStatus = "matched" | "partial" | "missing";
+export type EvidenceStrength = "strong" | "weak"; // v1.4：strong 有数据有深度 / weak 一笔带过
 
 export interface GapItem {
   gap_id: string;
   ability: string;
   status: GapStatus;
+  evidence_strength: EvidenceStrength;
   importance: number;
+  category: string;
+  is_core: boolean;
   reason: string;
 }
 
@@ -55,6 +60,8 @@ export interface GapReport {
   items: GapItem[];
   top_gaps: GapItem[];
   warnings: string[];
+  core_penalty_applied: boolean; // v1.4：核心门槛未达标（总分 ×0.6 且封顶 60）
+  core_gap_abilities: string[];
 }
 
 export interface RewriteResult {
@@ -98,15 +105,21 @@ export interface ScoreDetailItem {
   gap_id: string;
   ability: string;
   importance: number;
+  weight: number; // 软技能 5 折后的实际权重
+  soft_discounted: boolean;
+  is_core: boolean;
   status: GapStatus;
+  evidence_strength: EvidenceStrength;
   coefficient: number;
   earned: number;
 }
 
 export interface ScoreDetail {
-  coefficients: Record<GapStatus, number>;
   items: ScoreDetailItem[];
   total_weight: number;
   total_earned: number;
+  raw_score: number; // 核心否决前的原始分
+  core_penalty_applied: boolean;
+  core_gap_abilities: string[];
   match_score: number;
 }

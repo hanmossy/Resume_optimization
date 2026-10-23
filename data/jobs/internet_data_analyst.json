@@ -9,14 +9,70 @@
     "维护和优化数据报表，提升数据产出效率"
   ],
   "abilities": [
-    {"name": "SQL 数据提取与处理", "category": "硬技能", "importance": 5, "importance_source": "人工核定", "evidence": "熟练使用 SQL 进行数据提取与处理"},
-    {"name": "Excel / 数据处理工具", "category": "硬技能", "importance": 4, "importance_source": "人工核定", "evidence": "熟练使用 Excel 等办公软件，掌握 Python/R 者优先"},
-    {"name": "数据可视化与报告撰写", "category": "硬技能", "importance": 4, "importance_source": "人工核定", "evidence": "能够将分析结论以图表和报告形式清晰呈现"},
-    {"name": "业务理解能力", "category": "软技能", "importance": 4, "importance_source": "人工核定", "evidence": "理解业务逻辑，能将数据结论转化为业务建议"},
-    {"name": "逻辑思维与问题拆解", "category": "软技能", "importance": 4, "importance_source": "人工核定", "evidence": "具备良好的逻辑思维，能独立拆解分析问题"},
-    {"name": "统计学基础", "category": "硬技能", "importance": 3, "importance_source": "人工核定", "evidence": "掌握基本的统计学方法，了解常用分析模型"},
-    {"name": "沟通协作", "category": "软技能", "importance": 3, "importance_source": "人工核定", "evidence": "良好的跨团队沟通与协作能力"},
-    {"name": "本科在读及以上（理工科/经管优先）", "category": "背景门槛", "importance": 3, "importance_source": "人工核定", "evidence": "本科及以上学历在读，数学、统计、计算机、经管类专业优先"}
+    {
+      "name": "SQL 数据提取与处理",
+      "category": "硬技能",
+      "importance": 5,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 SQL 进行数据提取与处理",
+      "is_core": true
+    },
+    {
+      "name": "Excel / 数据处理工具",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Excel 等办公软件，掌握 Python/R 者优先",
+      "is_core": false
+    },
+    {
+      "name": "数据可视化与报告撰写",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "能够将分析结论以图表和报告形式清晰呈现",
+      "is_core": false
+    },
+    {
+      "name": "业务理解能力",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "理解业务逻辑，能将数据结论转化为业务建议",
+      "is_core": false
+    },
+    {
+      "name": "逻辑思维与问题拆解",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "具备良好的逻辑思维，能独立拆解分析问题",
+      "is_core": false
+    },
+    {
+      "name": "统计学基础",
+      "category": "硬技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "掌握基本的统计学方法，了解常用分析模型",
+      "is_core": false
+    },
+    {
+      "name": "沟通协作",
+      "category": "软技能",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "良好的跨团队沟通与协作能力",
+      "is_core": false
+    },
+    {
+      "name": "本科在读及以上（理工科/经管优先）",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "本科及以上学历在读，数学、统计、计算机、经管类专业优先",
+      "is_core": false
+    }
   ],
   "salary_hint": "200-300 元/天（参考同类公开实习岗位区间，非 JD 原文）",
   "source_note": "依据主流互联网公司公开招聘描述人工整理（2026-10，团队人工核验）；能力项与重要度为人工核定"

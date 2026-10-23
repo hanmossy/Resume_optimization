@@ -12,42 +12,48 @@
       "category": "硬技能",
       "importance": 5,
       "importance_source": "人工核定",
-      "evidence": "熟悉 Java/Go/Python 中至少一门"
+      "evidence": "熟悉 Java/Go/Python 中至少一门",
+      "is_core": true
     },
     {
       "name": "数据结构与算法",
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "掌握常见数据结构与算法"
+      "evidence": "掌握常见数据结构与算法",
+      "is_core": true
     },
     {
       "name": "数据库基础",
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "熟悉 MySQL 等关系型数据库"
+      "evidence": "熟悉 MySQL 等关系型数据库",
+      "is_core": false
     },
     {
       "name": "Linux 与 Git",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "熟悉 Linux 基本操作与 Git 协作"
+      "evidence": "熟悉 Linux 基本操作与 Git 协作",
+      "is_core": false
     },
     {
       "name": "学习与问题解决",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "能独立定位并解决问题"
+      "evidence": "能独立定位并解决问题",
+      "is_core": false
     },
     {
       "name": "计算机相关在读",
       "category": "背景门槛",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "计算机或相关专业在读优先"
+      "evidence": "计算机或相关专业在读优先",
+      "is_core": false
     }
   ],
   "salary_hint": "",

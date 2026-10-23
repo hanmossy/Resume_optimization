@@ -12,35 +12,40 @@
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "金融、会计相关专业，掌握基金基础知识"
+      "evidence": "金融、会计相关专业，掌握基金基础知识",
+      "is_core": true
     },
     {
       "name": "细心严谨",
       "category": "软技能",
       "importance": 5,
       "importance_source": "人工核定",
-      "evidence": "工作细致严谨，对数字高度负责"
+      "evidence": "工作细致严谨，对数字高度负责",
+      "is_core": false
     },
     {
       "name": "Excel 数据处理",
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "熟练使用 Excel 处理数据"
+      "evidence": "熟练使用 Excel 处理数据",
+      "is_core": false
     },
     {
       "name": "责任心与执行力",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "责任心强，执行力高"
+      "evidence": "责任心强，执行力高",
+      "is_core": false
     },
     {
       "name": "本科在读及以上",
       "category": "背景门槛",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "本科及以上学历在读"
+      "evidence": "本科及以上学历在读",
+      "is_core": false
     }
   ],
   "salary_hint": "",

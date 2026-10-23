@@ -12,35 +12,40 @@
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "熟练使用 Excel，会 SAP 者优先"
+      "evidence": "熟练使用 Excel，会 SAP 者优先",
+      "is_core": true
     },
     {
       "name": "供应链常识",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "物流、供应链相关专业优先"
+      "evidence": "物流、供应链相关专业优先",
+      "is_core": false
     },
     {
       "name": "细心与责任心",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "工作细致，责任心强"
+      "evidence": "工作细致，责任心强",
+      "is_core": false
     },
     {
       "name": "沟通协调",
       "category": "软技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "能与仓储、物流多方协作"
+      "evidence": "能与仓储、物流多方协作",
+      "is_core": false
     },
     {
       "name": "本科在读及以上",
       "category": "背景门槛",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "本科及以上学历在读"
+      "evidence": "本科及以上学历在读",
+      "is_core": false
     }
   ],
   "salary_hint": "",

@@ -24,10 +24,12 @@ from typing import Any, Literal, TypedDict
 # ---------------------------------------------------------------------------
 
 # v1.2：resume_extract 升级为富结构 v2.0（name/contacts/entries），旧缓存自动失效
-SCHEMA_VERSION: str = "1.3"
+SCHEMA_VERSION: str = "1.4"
 
 # Gap 命中状态的合法取值，同时驱动 UI 三色标注（绿/黄/红）
 GapStatus = Literal["matched", "partial", "missing"]
+# v1.4：证据强度（防"沾边即满分"——strong 给满分系数，weak 降档）
+EvidenceStrength = Literal["strong", "weak"]
 
 # importance 来源标注（架构 v1.1 M6：评委追问评分依据时的解释载体）
 ImportanceSource = Literal["人工核定", "LLM评估"]
@@ -92,13 +94,19 @@ class PDFExportError(AppError):
 
 
 class AbilityItem(TypedDict):
-    """岗位 JD 拆解出的单项能力要求，Gap 对比的原子单位。"""
+    """岗位 JD 拆解出的单项能力要求，Gap 对比的原子单位。
+
+    v1.4 新增 is_core（第十一轮指令）：核心硬性能力标记——预设岗位库由
+    团队人工挑选 1-2 项；LLM 抽取路径由 job_extract v1.2 评估 1-3 项。
+    is_core=True 的项 partial/missing 时触发总分一票否决（×0.6 且封顶 60）。
+    """
 
     name: str  # 能力项名，如 "SQL 数据分析"
     category: str  # 硬技能 / 软技能 / 背景门槛
     importance: int  # 1-5，岗位方重要度
     importance_source: ImportanceSource  # 预设岗位=人工核定；自定义 JD=LLM评估
     evidence: str  # JD 原文依据引文，供界面展示与人工核验
+    is_core: bool  # 是否为该岗位的核心硬性能力（缺省 False，由调用方兜底）
 
 
 class JobRequirements(TypedDict):
@@ -163,23 +171,33 @@ class ResumeData(TypedDict):
 class GapItem(TypedDict):
     """单个能力项的 Gap 诊断结果（gap_matcher 中 LLM 通道的输出单元）。
 
-    注意：LLM 只输出 status 与 reason，分数由规则通道计算，本结构不含分数字段。
+    注意：LLM 只输出 status / evidence_strength / reason，分数由规则通道
+    计算，本结构不含分数字段。v1.4 新增 evidence_strength（证据强度，
+    防"沾边即满分"）与 category/is_core 透传（软技能降权与核心项否决用）。
     """
 
     gap_id: str  # 唯一标识 = f"{job_id}#{序号}"，消除能力重名歧义（v1.1 S5）
     ability: str  # 能力项名（与 JobRequirements.abilities[i].name 一一对应）
     status: GapStatus  # matched=绿 / partial=黄 / missing=红
+    evidence_strength: EvidenceStrength  # strong=有数据有深度 / weak=一笔带过
     importance: int  # 从岗位侧透传，规则评分使用
+    category: str  # 从岗位侧透传（软技能权重 5 折的依据）
+    is_core: bool  # 从岗位侧透传（核心项一票否决的依据）
     reason: str  # LLM 判断依据（须引用简历原文）
 
 
 class GapReport(TypedDict):
-    """完整 Gap 诊断报告（gap_matcher 的最终输出契约）。"""
+    """完整 Gap 诊断报告（gap_matcher 的最终输出契约）。
+
+    v1.4 新增核心项否决字段（第十一轮指令）：前端据此渲染红色警示行。
+    """
 
     match_score: int  # 0-100，规则通道产出，给定 status 序列后逐位可复现
     items: list[GapItem]  # 与岗位能力项一一对应，数量严格相等
     top_gaps: list[GapItem]  # 按 importance × 缺失度排序的 Top3，供 rewriter 聚焦
     warnings: list[str]  # LLM 输出对齐过程中的缺项/截断等告警，界面可选展示
+    core_penalty_applied: bool  # 是否触发核心项一票否决（总分 ×0.6 且封顶 60）
+    core_gap_abilities: list[str]  # 未达标的核心能力项名列表（警示行展示用）
 
 
 class RewriteResult(TypedDict):
@@ -250,6 +268,9 @@ def validate_ability_item(ab: Any, where: str, strict_source: bool = False) -> N
              and 1 <= ab["importance"] <= 5,
              f"{where}.importance 须为 1-5 整数")  # bool 是 int 子类，须显式排除
     _require(isinstance(ab.get("evidence"), str), f"{where}.evidence 缺失")
+    # v1.4：is_core 允许缺省（由调用方兜底 False），存在时必须是布尔
+    if "is_core" in ab:
+        _require(isinstance(ab["is_core"], bool), f"{where}.is_core 非布尔值")
     if strict_source:
         _require(ab.get("importance_source") in LEGAL_IMPORTANCE_SOURCES,
                  f"{where}.importance_source 须为 {LEGAL_IMPORTANCE_SOURCES}")
@@ -337,12 +358,19 @@ def validate_gap_items(data: Any, expected_count: int) -> None:
     _require(len(data) <= expected_count * 2,
              f"gap_judge 返回 {len(data)} 条，远超能力项数 {expected_count}")
     legal = ("matched", "partial", "missing")
+    legal_strength = ("strong", "weak")
     for i, item in enumerate(data):
         _require(isinstance(item, dict), f"items[{i}] 不是对象")
         _require(isinstance(item.get("ability"), str), f"items[{i}].ability 缺失")
         _require(item.get("status") in legal,
                  f"items[{i}].status={item.get('status')!r} 非法，须为 {legal}")
         _require(isinstance(item.get("reason"), str), f"items[{i}].reason 缺失")
+        # v1.4：evidence_strength 存在时必须合法；缺省由 align_items 兜底
+        # "weak"（保守降分方向，绝不允许缺省被当成强证据抬分）
+        if "evidence_strength" in item:
+            _require(item["evidence_strength"] in legal_strength,
+                     f"items[{i}].evidence_strength={item.get('evidence_strength')!r} 非法，"
+                     f"须为 {legal_strength}")
 
 
 def validate_rewrite_result(data: dict[str, Any]) -> None:

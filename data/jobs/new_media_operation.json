@@ -12,35 +12,40 @@
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "具备文案写作与选题策划能力"
+      "evidence": "具备文案写作与选题策划能力",
+      "is_core": true
     },
     {
       "name": "排版与工具",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "熟悉公众号排版与剪映等工具"
+      "evidence": "熟悉公众号排版与剪映等工具",
+      "is_core": false
     },
     {
       "name": "数据分析",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "能根据阅读/播放数据优化内容"
+      "evidence": "能根据阅读/播放数据优化内容",
+      "is_core": false
     },
     {
       "name": "热点敏感",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "对热点敏感，网感好"
+      "evidence": "对热点敏感，网感好",
+      "is_core": false
     },
     {
       "name": "本科在读及以上",
       "category": "背景门槛",
       "importance": 2,
       "importance_source": "人工核定",
-      "evidence": "本科及以上学历在读"
+      "evidence": "本科及以上学历在读",
+      "is_core": false
     }
   ],
   "salary_hint": "",

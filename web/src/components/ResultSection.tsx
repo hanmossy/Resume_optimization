@@ -46,7 +46,7 @@ function ScoreRing({ score }: { score: number }) {
       <div>
         <div className="text-sm font-semibold text-slate-700">简历与岗位匹配度</div>
         <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-400">
-          评分口径：各能力项重要度 × 命中系数（已具备 1.0 / 部分匹配 0.5 / 缺失 0.0）加权求和，可用公式逐位复算。
+          评分口径：Σ(权重 × 命中系数)÷Σ权重×100。系数：已具备(强证据)1.0 / 已具备(弱证据)0.7 / 部分匹配0.4 / 缺失0.0；软技能权重5折；核心门槛未达标总分×0.6且封顶60。
         </p>
       </div>
     </div>
@@ -69,8 +69,9 @@ function ScoreDrawer({ detail }: { detail: ScoreDetail }) {
             <thead>
               <tr className="text-left text-slate-400">
                 <th className="py-1.5 font-medium">能力项</th>
-                <th className="py-1.5 font-medium">重要度</th>
+                <th className="py-1.5 font-medium">权重</th>
                 <th className="py-1.5 font-medium">命中状态</th>
+                <th className="py-1.5 font-medium">证据强度</th>
                 <th className="py-1.5 font-medium">系数</th>
                 <th className="py-1.5 text-right font-medium">单项得分</th>
               </tr>
@@ -78,12 +79,23 @@ function ScoreDrawer({ detail }: { detail: ScoreDetail }) {
             <tbody>
               {detail.items.map((it) => (
                 <tr key={it.gap_id} className="border-t border-indigo-100/60 text-slate-600">
-                  <td className="py-1.5 pr-2">{it.ability}</td>
-                  <td className="py-1.5">{it.importance}</td>
+                  <td className="py-1.5 pr-2">
+                    {it.ability}
+                    {it.is_core && <span className="ml-1 rounded bg-red-50 px-1 py-0.5 text-red-600">核心</span>}
+                  </td>
+                  <td className="py-1.5">
+                    {it.weight}
+                    {it.soft_discounted && <span className="ml-1 text-slate-400" title="软技能权重 5 折">(5折)</span>}
+                  </td>
                   <td className="py-1.5">
                     <span className={`rounded-full px-2 py-0.5 ${STATUS_META[it.status].pill}`}>
                       {STATUS_META[it.status].label}
                     </span>
+                  </td>
+                  <td className="py-1.5">
+                    {it.status === "matched"
+                      ? (it.evidence_strength === "strong" ? "强证据" : "弱证据↓")
+                      : "—"}
                   </td>
                   <td className="py-1.5">× {it.coefficient}</td>
                   <td className="py-1.5 text-right font-mono">{it.earned}</td>
@@ -92,13 +104,21 @@ function ScoreDrawer({ detail }: { detail: ScoreDetail }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-indigo-200 font-medium text-slate-700">
-                <td className="py-2" colSpan={4}>合计：{detail.total_earned} ÷ {detail.total_weight} × 100</td>
-                <td className="py-2 text-right font-mono text-indigo-700">= {detail.match_score} 分</td>
+                <td className="py-2" colSpan={5}>合计：{detail.total_earned} ÷ {detail.total_weight} × 100</td>
+                <td className="py-2 text-right font-mono">= {detail.raw_score} 分</td>
               </tr>
+              {detail.core_penalty_applied && (
+                <tr className="font-medium text-red-600">
+                  <td className="py-1.5" colSpan={5}>
+                    ⚠️ 核心门槛未达标（{detail.core_gap_abilities.join("、")}）：× 0.6 且封顶 60
+                  </td>
+                  <td className="py-1.5 text-right font-mono">→ {detail.match_score} 分</td>
+                </tr>
+              )}
             </tfoot>
           </table>
           <p className="mt-2 text-xs leading-relaxed text-slate-400">
-            AI 只负责判断每项命中状态并引用简历原文，分数完全由上表规则公式计算——同一输入逐位可复现，这就是"人机协同"的分工边界。
+            AI 只负责判断每项命中状态、证据强度并引用简历原文，分数完全由上表规则公式计算（含软技能降权与核心门槛否决）——同一输入逐位可复现，这就是"人机协同"的分工边界。
           </p>
         </div>
       )}
@@ -121,6 +141,12 @@ export default function ResultSection({ report, rewrites, failures, scoreDetail 
       <h2 className="text-lg font-semibold">诊断结果</h2>
 
       <ScoreRing score={report.match_score} />
+
+      {report.core_penalty_applied && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700">
+          ⚠️ 核心门槛未达标：缺少【{report.core_gap_abilities.join("、")}】能力，导致整体匹配度受限（总分 ×0.6 且封顶 60 分）。
+        </p>
+      )}
 
       <ScoreDrawer detail={scoreDetail} />
 

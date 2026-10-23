@@ -55,6 +55,9 @@ export default function JobProfile({ job, searchUrls }: Props) {
             <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 transition hover:shadow-card">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="font-medium">{ab.name}</span>
+                {ab.is_core && (
+                  <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-600">🎯 核心门槛</span>
+                )}
                 <span className="rounded bg-white px-1.5 py-0.5 text-xs text-slate-500">{ab.category}</span>
                 <span className="text-xs text-amber-500">{"★".repeat(ab.importance)}</span>
                 <span className="text-xs text-slate-400">{ab.importance_source}</span>

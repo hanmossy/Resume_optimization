@@ -12,42 +12,48 @@
       "category": "硬技能",
       "importance": 5,
       "importance_source": "人工核定",
-      "evidence": "能快速检索、筛选并整合信息"
+      "evidence": "能快速检索、筛选并整合信息",
+      "is_core": true
     },
     {
       "name": "PPT 制作",
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "熟练使用 PPT 制作商业汇报材料"
+      "evidence": "熟练使用 PPT 制作商业汇报材料",
+      "is_core": false
     },
     {
       "name": "结构化思维",
       "category": "软技能",
       "importance": 5,
       "importance_source": "人工核定",
-      "evidence": "具备结构化拆解问题的能力"
+      "evidence": "具备结构化拆解问题的能力",
+      "is_core": false
     },
     {
       "name": "Excel 数据分析",
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "熟练使用 Excel 进行数据分析"
+      "evidence": "熟练使用 Excel 进行数据分析",
+      "is_core": false
     },
     {
       "name": "抗压能力",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "能适应项目制高强度节奏"
+      "evidence": "能适应项目制高强度节奏",
+      "is_core": false
     },
     {
       "name": "本科在读及以上",
       "category": "背景门槛",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "本科及以上学历在读，专业不限"
+      "evidence": "本科及以上学历在读，专业不限",
+      "is_core": false
     }
   ],
   "salary_hint": "",

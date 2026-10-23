@@ -12,42 +12,48 @@
       "category": "硬技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "金融、经济相关专业背景优先"
+      "evidence": "金融、经济相关专业背景优先",
+      "is_core": true
     },
     {
       "name": "沟通表达能力",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "具备优秀的沟通表达与客户服务意识"
+      "evidence": "具备优秀的沟通表达与客户服务意识",
+      "is_core": false
     },
     {
       "name": "学习能力",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "学习能力强，能快速适应轮岗"
+      "evidence": "学习能力强，能快速适应轮岗",
+      "is_core": false
     },
     {
       "name": "Office 办公软件",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "熟练使用 Office 办公软件"
+      "evidence": "熟练使用 Office 办公软件",
+      "is_core": false
     },
     {
       "name": "英语能力",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "CET-4 及以上"
+      "evidence": "CET-4 及以上",
+      "is_core": false
     },
     {
       "name": "本科在读及以上",
       "category": "背景门槛",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "全日制本科及以上学历在读"
+      "evidence": "全日制本科及以上学历在读",
+      "is_core": false
     }
   ],
   "salary_hint": "",

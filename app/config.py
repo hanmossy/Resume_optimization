@@ -112,8 +112,23 @@ CACHE_MANIFEST_PATH: Path = CACHE_DIR / "manifest.json"
 # Gap 评分规则参数（规则通道的唯一参数源，gap_matcher 不得自行定义）
 # ---------------------------------------------------------------------------
 
-# 命中系数：matched=1.0 / partial=0.5 / missing=0.0（界面须向评委解释该口径）
-MATCH_COEFFICIENTS: dict[str, float] = {"matched": 1.0, "partial": 0.5, "missing": 0.0}
+# v1.4 防虚高公式（第十一轮指令，反例驱动：沾边即满分 + 软技能占权 + 无门槛
+# 否决曾导致"大二营业厅实习 vs 中信研究所"拿到 91-96 分的荒谬结果）：
+#   命中系数 = f(status, evidence_strength)：
+#     matched + strong（有具体业绩/数据/深度细节） = 1.0
+#     matched + weak（平铺直叙、一笔带过）         = 0.7
+#     partial                                       = 0.4
+#     missing                                       = 0.0
+#   软技能降权：category == "软技能" 的能力项权重打 5 折；
+#   核心项一票否决：任一 is_core 能力项 partial/missing → 总分 ×0.6 且封顶 60。
+HIT_COEF: dict[str, dict[str, float] | float] = {
+    "matched": {"strong": 1.0, "weak": 0.7},
+    "partial": 0.4,
+    "missing": 0.0,
+}
+SOFT_SKILL_WEIGHT_DISCOUNT: float = 0.5  # 软技能权重折扣
+CORE_PENALTY_FACTOR: float = 0.6         # 核心项未达标时总分乘数
+CORE_SCORE_CAP: int = 60                 # 核心项未达标时总分封顶
 TOP_GAPS_COUNT: int = 3       # 改写模块聚焦的 Gap 数量（交互≤2轮约束的配套）
 
 # ---------------------------------------------------------------------------

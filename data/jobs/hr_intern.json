@@ -12,35 +12,40 @@
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "亲和力强，善于沟通"
+      "evidence": "亲和力强，善于沟通",
+      "is_core": false
     },
     {
       "name": "Office 办公软件",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "熟练使用 Office"
+      "evidence": "熟练使用 Office",
+      "is_core": false
     },
     {
       "name": "执行力与条理性",
       "category": "软技能",
       "importance": 4,
       "importance_source": "人工核定",
-      "evidence": "做事有条理，执行力强"
+      "evidence": "做事有条理，执行力强",
+      "is_core": false
     },
     {
       "name": "人力资源常识",
       "category": "硬技能",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "人力资源相关专业或有兴趣者优先"
+      "evidence": "人力资源相关专业或有兴趣者优先",
+      "is_core": true
     },
     {
       "name": "本科在读及以上",
       "category": "背景门槛",
       "importance": 3,
       "importance_source": "人工核定",
-      "evidence": "本科及以上学历在读"
+      "evidence": "本科及以上学历在读",
+      "is_core": false
     }
   ],
   "salary_hint": "",

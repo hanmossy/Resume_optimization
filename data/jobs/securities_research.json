@@ -9,13 +9,62 @@
     "完成会议纪要整理与路演支持工作"
   ],
   "abilities": [
-    {"name": "财务分析能力", "category": "硬技能", "importance": 5, "importance_source": "人工核定", "evidence": "熟悉三大财务报表，具备财务建模基础"},
-    {"name": "信息检索与资料整理", "category": "硬技能", "importance": 4, "importance_source": "人工核定", "evidence": "熟练使用 Wind/Choice 或公开渠道搜集整理研究资料"},
-    {"name": "报告写作能力", "category": "硬技能", "importance": 4, "importance_source": "人工核定", "evidence": "文字功底扎实，能协助撰写研究报告"},
-    {"name": "Excel / Wind 等工具", "category": "硬技能", "importance": 4, "importance_source": "人工核定", "evidence": "熟练使用 Excel，掌握 Wind 等金融终端者优先"},
-    {"name": "行业研究与学习能力", "category": "软技能", "importance": 4, "importance_source": "人工核定", "evidence": "对行业研究有浓厚兴趣，学习能力强"},
-    {"name": "严谨细致", "category": "软技能", "importance": 4, "importance_source": "人工核定", "evidence": "工作严谨细致，对数据准确性负责"},
-    {"name": "本科在读及以上（经管/金融优先）", "category": "背景门槛", "importance": 3, "importance_source": "人工核定", "evidence": "重点院校本科及以上在读，金融、经济、会计等专业优先"}
+    {
+      "name": "财务分析能力",
+      "category": "硬技能",
+      "importance": 5,
+      "importance_source": "人工核定",
+      "evidence": "熟悉三大财务报表，具备财务建模基础",
+      "is_core": true
+    },
+    {
+      "name": "信息检索与资料整理",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Wind/Choice 或公开渠道搜集整理研究资料",
+      "is_core": false
+    },
+    {
+      "name": "报告写作能力",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "文字功底扎实，能协助撰写研究报告",
+      "is_core": true
+    },
+    {
+      "name": "Excel / Wind 等工具",
+      "category": "硬技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "熟练使用 Excel，掌握 Wind 等金融终端者优先",
+      "is_core": false
+    },
+    {
+      "name": "行业研究与学习能力",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "对行业研究有浓厚兴趣，学习能力强",
+      "is_core": false
+    },
+    {
+      "name": "严谨细致",
+      "category": "软技能",
+      "importance": 4,
+      "importance_source": "人工核定",
+      "evidence": "工作严谨细致，对数据准确性负责",
+      "is_core": false
+    },
+    {
+      "name": "本科在读及以上（经管/金融优先）",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "重点院校本科及以上在读，金融、经济、会计等专业优先",
+      "is_core": false
+    }
   ],
   "salary_hint": "",
   "source_note": "依据券商研究所公开招聘描述人工整理（2026-10，团队人工核验）；能力项与重要度为人工核定"
