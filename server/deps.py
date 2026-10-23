@@ -38,11 +38,18 @@ def verify_access(x_access_password: str = Header(default="")) -> str:
     return x_access_password
 
 
-def inject_byok(x_user_api_key: str = Header(default="")) -> None:
+async def inject_byok(x_user_api_key: str = Header(default="")) -> None:
     """BYOK 注入依赖：把用户 Key 写入请求级 contextvar（多用户并发安全）。
 
     PUBLIC_MODE 下强制：未提供 Key 的请求直接 400，绝不回退团队 Key
     （服务器环境本就刻意不配团队 Key）。
+
+    【为何必须是 async】FastAPI 会把 sync 依赖放进线程池执行，而
+    contextvar 的 set 只发生在被复制的线程上下文里，依赖返回后
+    主上下文丢失该值——用户 Key 静默变 None，DeepSeek 收到空
+    Bearer 报 401（公网实测复现）。async 依赖直接在请求任务的
+    事件循环上下文执行，set 生效，随后 run_in_threadpool 复制
+    该上下文进入业务线程，Key 链路完整。
     """
     if config.PUBLIC_MODE and not x_user_api_key.strip():
         raise HTTPException(
