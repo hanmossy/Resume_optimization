@@ -36,3 +36,13 @@ body {
   opacity: 0; /* 动画起点，防止 delay 期间闪现 */
   animation: row-in 0.4s ease-out forwards;
 }
+
+/* 指标池卡片淡入上浮（v1.6 Human-in-the-loop："信息汇聚并被你掌控"的视觉语言） */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-card-in {
+  opacity: 0;
+  animation: card-in 0.45s cubic-bezier(0.22, 0.8, 0.36, 1) forwards;
+}

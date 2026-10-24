@@ -15,7 +15,8 @@
       "importance": 5,
       "importance_source": "人工核定",
       "evidence": "熟悉三大财务报表，具备财务建模基础",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "信息检索与资料整理",
@@ -23,7 +24,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "熟练使用 Wind/Choice 或公开渠道搜集整理研究资料",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "报告写作能力",
@@ -31,7 +33,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "文字功底扎实，能协助撰写研究报告",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "Excel / Wind 等工具",
@@ -39,7 +42,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "熟练使用 Excel，掌握 Wind 等金融终端者优先",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "行业研究与学习能力",
@@ -47,7 +51,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "对行业研究有浓厚兴趣，学习能力强",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "严谨细致",
@@ -55,7 +60,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "工作严谨细致，对数据准确性负责",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上（经管/金融优先）",
@@ -63,7 +69,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "重点院校本科及以上在读，金融、经济、会计等专业优先",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "实习时间保障",
@@ -71,7 +78,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "JD 要求：实习期 3 个月及以上，每周可到岗 3-4 天",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",

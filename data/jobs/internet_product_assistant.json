@@ -13,7 +13,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "能撰写清晰的需求文档",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "竞品分析能力",
@@ -21,7 +22,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "有竞品分析经验或方法论了解",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "沟通协调",
@@ -29,7 +31,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "良好的跨团队沟通能力",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "原型工具",
@@ -37,7 +40,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "会使用 Axure/墨刀/Figma 等原型工具优先",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "用户同理心",
@@ -45,7 +49,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "能从用户视角思考问题",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上",
@@ -53,7 +58,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "本科及以上学历在读",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",

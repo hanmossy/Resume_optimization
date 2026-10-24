@@ -24,7 +24,7 @@ from typing import Any, Literal, TypedDict
 # ---------------------------------------------------------------------------
 
 # v1.2：resume_extract 升级为富结构 v2.0（name/contacts/entries），旧缓存自动失效
-SCHEMA_VERSION: str = "1.5"
+SCHEMA_VERSION: str = "1.6"
 
 # Gap 命中状态的合法取值，同时驱动 UI 三色标注（绿/黄/红）
 GapStatus = Literal["matched", "partial", "missing"]
@@ -33,6 +33,12 @@ EvidenceStrength = Literal["strong", "weak"]
 
 # importance 来源标注（架构 v1.1 M6：评委追问评分依据时的解释载体）
 ImportanceSource = Literal["人工核定", "LLM评估"]
+
+# v1.6（第十二轮 Human-in-the-loop 指令）：能力项的信息来源通道——
+# jd_requirement=JD 直接要求（参与匹配评分）；public_opinion=舆情体验
+# 与 policy_background=政策背景（环境情报，仅供求职决策参考，不进评分公式）
+SourceType = Literal["jd_requirement", "public_opinion", "policy_background"]
+LEGAL_SOURCE_TYPES: tuple[str, ...] = ("jd_requirement", "public_opinion", "policy_background")
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +105,8 @@ class AbilityItem(TypedDict):
     v1.4 新增 is_core（第十一轮指令）：核心硬性能力标记——预设岗位库由
     团队人工挑选 1-2 项；LLM 抽取路径由 job_extract v1.2 评估 1-3 项。
     is_core=True 的项 partial/missing 时触发总分一票否决（×0.6 且封顶 60）。
+    v1.6 新增 source_type（第十二轮 Human-in-the-loop 指令）：信息来源通道
+    标签，驱动前端"指标池"的分区展示（匹配指标 vs 环境情报）。
     """
 
     name: str  # 能力项名，如 "SQL 数据分析"
@@ -107,6 +115,7 @@ class AbilityItem(TypedDict):
     importance_source: ImportanceSource  # 预设岗位=人工核定；自定义 JD=LLM评估
     evidence: str  # JD 原文依据引文，供界面展示与人工核验
     is_core: bool  # 是否为该岗位的核心硬性能力（缺省 False，由调用方兜底）
+    source_type: SourceType  # 信息来源通道（缺省 jd_requirement，由调用方兜底）
 
 
 class JobRequirements(TypedDict):
@@ -271,6 +280,10 @@ def validate_ability_item(ab: Any, where: str, strict_source: bool = False) -> N
     # v1.4：is_core 允许缺省（由调用方兜底 False），存在时必须是布尔
     if "is_core" in ab:
         _require(isinstance(ab["is_core"], bool), f"{where}.is_core 非布尔值")
+    # v1.6：source_type 允许缺省（由调用方兜底 jd_requirement），存在时必须合法
+    if "source_type" in ab:
+        _require(ab["source_type"] in LEGAL_SOURCE_TYPES,
+                 f"{where}.source_type={ab.get('source_type')!r} 非法，须为 {LEGAL_SOURCE_TYPES}")
     if strict_source:
         _require(ab.get("importance_source") in LEGAL_IMPORTANCE_SOURCES,
                  f"{where}.importance_source 须为 {LEGAL_IMPORTANCE_SOURCES}")

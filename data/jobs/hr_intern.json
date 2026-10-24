@@ -13,7 +13,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "亲和力强，善于沟通",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "Office 办公软件",
@@ -21,7 +22,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "熟练使用 Office",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "执行力与条理性",
@@ -29,7 +31,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "做事有条理，执行力强",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "人力资源常识",
@@ -37,7 +40,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "人力资源相关专业或有兴趣者优先",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上",
@@ -45,7 +49,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "本科及以上学历在读",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",

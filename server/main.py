@@ -52,6 +52,7 @@ from contracts import (
     LLMUnavailableError,
     PDFExportError,
     PDFParseError,
+    SearchUnavailableError,
 )
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
@@ -184,16 +185,33 @@ async def search_job(body: SearchJobRequest,
     开发机 .env 用于预热，公网服务器刻意不配置。
 
     Returns:
-        {"job": JobRequirements, "source": "AI联网检索", "source_urls": [...]}
+        {"job": JobRequirements, "source": "AI联网检索", "source_urls": [...],
+         "opinion_urls": [...], "opinion_status": "ok" | "none"}
         job 是独立字段——下游 /api/diagnose 只认 job，来源信息仅供展示。
+        v1.6（第十二轮 Human-in-the-loop）：双通道检索——JD 摘要 + 小红书/知乎
+        舆情摘要合并进 job_extract，产出带 source_type 的指标池（含环境情报）。
     """
     check_session_quota(session_id)
     found = await run_in_threadpool(search_client.search, body.query, bocha_key or None)
-    job = await run_in_threadpool(job_analyzer.analyze_job, None, found["text"])
+    # 舆情通道（保险丝）：失败/未预热/无结果一律降级为 none，绝不阻塞主链路
+    opinion_urls: list[str] = []
+    opinion_results: list[dict[str, str]] | None = None
+    try:
+        opinion = await run_in_threadpool(
+            search_client.search, search_client.build_opinion_query(body.query), bocha_key or None)
+        opinion_results = opinion["results"]
+        opinion_urls = opinion["urls"]
+    except (SearchUnavailableError, CacheMissError):
+        pass  # 舆情是增强维度：降级后指标池显示"暂无显著舆论风险"
+    combined = search_client.synthesize_combined(body.query, found["results"], opinion_results)
+    job = await run_in_threadpool(job_analyzer.analyze_job, None, combined)
     # 覆盖元字段：标注检索来源（importance_source 已被 analyze_job 标为 LLM评估）
     job["job_id"] = "search"
-    job["source_note"] = f"AI 联网检索生成（{len(found['urls'])} 个网页摘要），请人工核验"
-    return {"job": dict(job), "source": "AI联网检索", "source_urls": found["urls"]}
+    opinion_note = f"，含 {len(opinion_urls)} 条小红书/知乎舆情" if opinion_urls else "（未检索到舆情信息）"
+    job["source_note"] = f"AI 联网检索生成（{len(found['urls'])} 个 JD 网页摘要{opinion_note}），请人工核验"
+    return {"job": dict(job), "source": "AI联网检索", "source_urls": found["urls"],
+            "opinion_urls": opinion_urls,
+            "opinion_status": "ok" if opinion_urls else "none"}
 
 
 @app.post("/api/parse-resume")

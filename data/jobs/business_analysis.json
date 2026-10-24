@@ -13,7 +13,8 @@
       "importance": 5,
       "importance_source": "人工核定",
       "evidence": "熟练使用 Excel，会 SQL/Python 优先",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "研究框架思维",
@@ -21,7 +22,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "掌握基本的行业研究框架",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "报告写作",
@@ -29,7 +31,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "能撰写结构清晰的分析报告",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "信息检索",
@@ -37,7 +40,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "熟练使用公开信息渠道获取数据",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上",
@@ -45,7 +49,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "本科及以上学历在读",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",

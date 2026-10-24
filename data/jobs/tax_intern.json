@@ -13,7 +13,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "财税相关专业，掌握税法基础",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "Excel 操作",
@@ -21,7 +22,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "熟练使用 Excel",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "细心严谨",
@@ -29,7 +31,8 @@
       "importance": 5,
       "importance_source": "人工核定",
       "evidence": "工作细致严谨",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "英语读写",
@@ -37,7 +40,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "CET-6 或同等水平优先",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上（财税类优先）",
@@ -45,7 +49,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "财税类专业在读优先",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",

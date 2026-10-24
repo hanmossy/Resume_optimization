@@ -5,10 +5,11 @@ import DiagnoseCard from "./components/DiagnoseCard";
 import ExportPanel from "./components/ExportPanel";
 import JobProfile from "./components/JobProfile";
 import JobSelect from "./components/JobSelect";
+import MetricPool from "./components/MetricPool";
 import ResultSection from "./components/ResultSection";
 import Sidebar from "./components/Sidebar";
 import type {
-  Background, DemoCase, DiagnoseResponse, GapReport, JobMeta, JobRequirements,
+  AbilityItem, Background, DemoCase, DiagnoseResponse, GapReport, JobMeta, JobRequirements,
   ResumeData, RewriteResult, ScoreDetail,
 } from "./types";
 
@@ -73,9 +74,13 @@ export default function App() {
   // ---- 业务状态（原 Streamlit session_state 的 React 化，无页面刷新） ----
   const [jobs, setJobs] = useState<JobMeta[]>([]);
   const [demoCases, setDemoCases] = useState<DemoCase[]>([]);
-  const [job, setJob] = useState<JobRequirements | null>(null);
+  const [poolJob, setPoolJob] = useState<JobRequirements | null>(null);  // v1.6：AI 提取的完整指标池（待用户确认）
+  const [job, setJob] = useState<JobRequirements | null>(null);  // 用户确认后的评估框架（筛选+调权重）
+  const [excluded, setExcluded] = useState<AbilityItem[]>([]);  // v1.6：用户排除的 AI 建议指标
   const [resume, setResume] = useState<ResumeData | null>(null);
   const [searchUrls, setSearchUrls] = useState<string[] | null>(null);  // AI 检索来源链接
+  const [opinionUrls, setOpinionUrls] = useState<string[] | null>(null);  // v1.6：舆情来源链接
+  const [opinionStatus, setOpinionStatus] = useState<"ok" | "none" | null>(null);
   const [searchStage, setSearchStage] = useState<string | null>(null);  // 检索步骤提示
   const [report, setReport] = useState<GapReport | null>(null);
   const [rewrites, setRewrites] = useState<RewriteResult[]>([]);
@@ -123,7 +128,8 @@ export default function App() {
   const clearDownstream = useCallback(() => {
     setReport(null); setRewrites([]); setFailures([]); setScoreDetail(null);
     setDemoHint(null); setDemoResumeText(null); setDemoBg(null);
-    setSearchUrls(null);
+    setSearchUrls(null); setOpinionUrls(null); setOpinionStatus(null);
+    setPoolJob(null); setExcluded([]);
   }, []);
 
   /** 一键换岗（第十一轮指令）：保留已解析简历，清空岗位与全部下游结果，
@@ -135,6 +141,16 @@ export default function App() {
     document.getElementById("step1")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [clearDownstream]);
 
+  /** v1.6 决策阻断点：用户在指标池中勾选/调权重后确认评估框架。
+      filtered 只含被采纳的 jd_requirement 指标（含用户调整的重要度）；
+      excluded 记录被排除的 AI 建议，供诊断结果页对比展示。 */
+  const confirmPool = useCallback((filtered: JobRequirements, ex: AbilityItem[]) => {
+    setJob(filtered);
+    setExcluded(ex);
+    setPoolJob(null);  // 指标池完成使命，卸下
+    setNotice(`已按你的评估框架（${filtered.abilities.length} 项指标）构建诊断标准，请上传简历`);
+  }, []);
+
   const handleError = useCallback((e: unknown) => {
     setError(e instanceof ApiError ? e : new ApiError(500, String(e)));
   }, []);
@@ -145,7 +161,7 @@ export default function App() {
       const j = await api.analyzeJob(payload);
       clearDownstream();
       setNotice(null);  // 新岗位就绪，换岗引导提示使命完成
-      setJob(j);
+      setPoolJob(j);  // v1.6：先进指标池（决策阻断点），不直接进诊断
     } catch (e) { handleError(e); } finally { setBusy(false); }
   }, [clearDownstream, handleError]);
 
@@ -165,8 +181,10 @@ export default function App() {
       const r = await api.searchJob(query);
       clearDownstream();
       setNotice(null);
-      setJob(r.job);
+      setPoolJob(r.job);  // v1.6：检索结果进指标池（含舆情环境情报）
       setSearchUrls(r.source_urls);
+      setOpinionUrls(r.opinion_urls);
+      setOpinionStatus(r.opinion_status);
     } catch (e) {
       // 503/409 已在 ApiError 内：追加引导文案，帮助用户回退到主链路
       if (e instanceof ApiError && (e.status === 503 || e.status === 409)) {
@@ -190,7 +208,7 @@ export default function App() {
       ]);
       clearDownstream();
       setNotice(null);
-      setJob(j);
+      setPoolJob(j);  // v1.6：演示案例同样过指标池（Human-in-the-loop 是主叙事）
       setDemoResumeText(r.text);
       setDemoBg(c.background);
       setDemoHint(`已载入演示配套简历：${c.resume_file}｜背景已固定为：${c.background.年级} / ${c.background.专业} / 目标${c.background.目标} / ${c.background.availability}（点击「开始诊断」即可）`);
@@ -266,6 +284,10 @@ export default function App() {
                    onPickDemo={pickDemo}
                    onAnalyzeJd={(jd) => runAnalyze({ jd_text: jd })}
                    onSearch={runSearch} />
+        {poolJob && (
+          <MetricPool job={poolJob} opinionUrls={opinionUrls} opinionStatus={opinionStatus}
+                      demoCacheMode={demoCacheMode} busy={busy} onConfirm={confirmPool} />
+        )}
         {job && <JobProfile job={job} searchUrls={searchUrls} />}
         {job && <DiagnoseCard demoHint={demoHint} busy={busy}
                               retainedName={!demoResumeText && resume ? (resume.name || "已解析简历") : null}
@@ -273,7 +295,7 @@ export default function App() {
         {job && report && scoreDetail && (
           <>
             <ResultSection report={report} rewrites={rewrites} failures={failures}
-                           scoreDetail={scoreDetail} onSwitchJob={switchJob} />
+                           scoreDetail={scoreDetail} excluded={excluded} onSwitchJob={switchJob} />
             {resume && (
               <ExportPanel job={job} resume={resume} report={report}
                            rewrites={rewrites} onError={setError} />

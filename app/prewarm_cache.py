@@ -148,34 +148,54 @@ def main() -> int:
 
 
 def prewarm_search_case() -> bool:
-    """可选预热：AI 联网检索演示案例（第九轮指令的"带保险丝增强项"）。
+    """可选预热：AI 联网检索演示案例（双通道版，v1.6）。
 
-    预热链路 = 演示链路：search_client.search(query) → job_analyzer.analyze_job(jd_text)。
-    两者都走写穿缓存——联网跑一次后，断网演示同一 query（逐字一致）全部命中。
+    预热链路 = 演示链路（与 server/main.py search_job 端点逐位一致）：
+        search(query) → search(build_opinion_query(query))（降级容忍）
+        → synthesize_combined → analyze_job(jd_text=combined)。
+    全部走写穿缓存——联网跑一次后，断网演示同一 query（逐字一致）全部命中。
+
+    v1.6 变更：双通道后 job_extract 的输入从"单段 JD 摘要"变为
+    "JD 段 + 舆情段"合成文本，旧缓存键必然失效，必须重跑本函数。
 
     保险丝语义：本函数的一切失败只打印警告并返回 False，
     **绝不影响三案例主预热的结果**（搜索是增强项，不是主链路）。
 
     Returns:
-        True = 检索案例预热成功；False = 跳过（无 Key）或失败（已打印警告）。
+        True = 全部检索案例预热成功；False = 跳过（无 Key）或任一失败。
     """
     import search_client  # 局部导入：仅本函数使用
 
-    query = config.SEARCH_DEMO_QUERY
+    # 演示词表：字节（config 单一来源）+ 腾讯（拍摄脚本备用词）。
+    # 演示时检索词必须与此处逐字一致，否则缓存键不同、必然 CacheMiss。
+    queries = [config.SEARCH_DEMO_QUERY, "腾讯 产品经理 实习 招聘要求"]
     if not config.BOCHA_API_KEY:
-        print(f"\n⚠️ 未配置 BOCHA_API_KEY，跳过联网检索案例预热（{query}）。")
+        print(f"\n⚠️ 未配置 BOCHA_API_KEY，跳过联网检索案例预热（{queries}）。")
         print("   注册 https://bochaai.com/ 后在 .env 写入 BOCHA_API_KEY=... 再重跑本脚本即可。")
         return False
-    print(f"\n=== 预热 AI 联网检索案例（query: {query}）===")
-    try:
-        found = search_client.search(query)  # 博查 API + 写穿缓存
-        job = job_analyzer.analyze_job(jd_text=found["text"])  # LLM：job_extract
-        print(f"  ✅ 检索 {len(found['urls'])} 个来源，抽取岗位「{job['job_title']}」，"
-              f"{len(job['abilities'])} 项能力——断网演示已就绪")
-        return True
-    except Exception as exc:  # 保险丝：任何异常都只警告
-        print(f"  ⚠️ 检索案例预热失败（不影响三案例）: {exc}")
-        return False
+    ok = True
+    for query in queries:
+        print(f"\n=== 预热 AI 联网检索案例（query: {query}）===")
+        try:
+            found = search_client.search(query)  # JD 通道：博查 API + 写穿缓存
+            # 舆情通道（与演示链路同口径）：失败只降级为 none，不阻断预热
+            opinion_results = None
+            try:
+                opinion = search_client.search(search_client.build_opinion_query(query))
+                opinion_results = opinion["results"]
+                print(f"  舆情通道：{len(opinion['urls'])} 条小红书/知乎摘要已缓存")
+            except Exception as exc:
+                print(f"  ⚠️ 舆情通道降级（不影响 JD 主链路）: {exc}")
+            combined = search_client.synthesize_combined(query, found["results"], opinion_results)
+            job = job_analyzer.analyze_job(jd_text=combined)  # LLM：job_extract
+            n_intel = sum(1 for ab in job["abilities"]
+                          if ab.get("source_type", "jd_requirement") != "jd_requirement")
+            print(f"  ✅ 检索 {len(found['urls'])} 个 JD 来源，抽取岗位「{job['job_title']}」，"
+                  f"{len(job['abilities'])} 项指标（含 {n_intel} 项环境情报）——断网演示已就绪")
+        except Exception as exc:  # 保险丝：任何异常都只警告
+            print(f"  ⚠️ 检索案例预热失败（不影响三案例）: {exc}")
+            ok = False
+    return ok
 
 
 if __name__ == "__main__":

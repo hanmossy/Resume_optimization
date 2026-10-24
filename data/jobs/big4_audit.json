@@ -15,7 +15,8 @@
       "importance": 5,
       "importance_source": "人工核定",
       "evidence": "会计、审计、财务管理等相关专业，掌握会计准则基础知识",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "Excel 操作与数据核对",
@@ -23,7 +24,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "熟练使用 Excel 进行数据处理与核对",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "细心与责任心",
@@ -31,7 +33,8 @@
       "importance": 5,
       "importance_source": "人工核定",
       "evidence": "工作细致严谨，对数字敏感，责任心强",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "抗压与适应能力",
@@ -39,7 +42,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "能适应忙季高强度工作节奏，接受出差安排",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "英语读写能力",
@@ -47,7 +51,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "CET-6 或同等水平，能阅读英文财务资料",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "团队协作与沟通",
@@ -55,7 +60,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "具备良好的团队合作精神与沟通能力",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上（财会类优先）",
@@ -63,7 +69,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "全日制本科及以上学历在读，财会类专业优先",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "实习时间保障",
@@ -71,7 +78,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "JD 要求：忙季实习期 3 个月及以上，每周可到岗 5 天",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { GapReport, GapStatus, RewriteResult, ScoreDetail } from "../types";
+import type { AbilityItem, GapReport, GapStatus, RewriteResult, ScoreDetail } from "../types";
 
 /** 状态三色口径（与 Streamlit 版冻结色值一致：绿/黄/红） */
 const STATUS_META: Record<GapStatus, { label: string; pill: string }> = {
@@ -131,12 +131,14 @@ interface Props {
   rewrites: RewriteResult[];
   failures: string[];
   scoreDetail: ScoreDetail;
+  /** v1.6：用户在指标池中排除的 AI 建议指标（与采纳项对照展示） */
+  excluded: AbilityItem[];
   /** 一键换岗（第十一轮指令）：保留简历、清空岗位与结果，滚动回选岗区 */
   onSwitchJob: () => void;
 }
 
 /** 诊断结果区：环形匹配度 + 运算过程面板 + 能力对照网格（Pill 标签）+ 改写左右对照卡片。 */
-export default function ResultSection({ report, rewrites, failures, scoreDetail, onSwitchJob }: Props) {
+export default function ResultSection({ report, rewrites, failures, scoreDetail, excluded, onSwitchJob }: Props) {
   const abilityOf = Object.fromEntries(report.items.map((it) => [it.gap_id, it.ability]));
   return (
     <section className="card space-y-6">
@@ -212,6 +214,23 @@ export default function ResultSection({ report, rewrites, failures, scoreDetail,
       {failures.map((f, i) => (
         <p key={i} className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">{f}</p>
       ))}
+
+      {/* v1.6 Human-in-the-loop 对照：用户排除的指标也要留痕——
+          "你拒绝了 AI 的哪些建议"正是批判性信息评估的可见证据 */}
+      {excluded.length > 0 && (
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+          <p className="mb-2 text-xs font-medium text-slate-500">
+            你在评估框架中排除的 AI 建议指标（{excluded.length} 项，未参与评分）
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {excluded.map((a, i) => (
+              <span key={i} className="rounded-full bg-white px-3 py-1 text-xs text-slate-400 line-through decoration-slate-300">
+                {a.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 一键换岗（第十一轮指令）：体验闭环——测完一个岗位直接换下一个，简历保留 */}
       <div className="flex justify-center border-t border-slate-100 pt-5">

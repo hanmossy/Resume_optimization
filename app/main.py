@@ -1,14 +1,16 @@
 """main.py —— Streamlit 界面与流程编排（唯一依赖 streamlit 的文件）。
 
 【模块说明】
-    四个页面区块（架构白皮书 2.8 + v1.1 M2 修订）：
-        1. 选岗区：演示案例快捷按钮 / 预设岗位下拉框 / 粘贴 JD →「分析岗位」；
+    五个页面区块（架构白皮书 2.8 + v1.1 M2 修订 + v1.6 Human-in-the-loop）：
+        1. 选岗区：演示案例快捷按钮 / 预设岗位下拉框 / 粘贴 JD / 全网检索；
+        1.5. 指标池决策阻断点（v1.6）：AI 调研报告分区展示——匹配指标
+             （可勾选/调星级，进评分）+ 环境情报（舆情/政策，只读不进评分），
+             用户「确认我的评估框架」后才写入 job_req；
         2. 岗位画像区：职责 + 能力项清单（含重要度与其来源标注）；
-        3. 上传诊断区：简历 PDF/TXT 上传或粘贴文本 + 背景信息 →「开始诊断」
-           （一步同时产出 GapReport + Top3 改写，2 次点击出完整报告）；
-        4. 结果导出区：匹配度仪表 + 左右对照视图（三色标注）+ 改写建议 + 导出 PDF。
-    状态契约（v1.1 M2）：session_state 仅使用 4 个键——
-        job_req / resume_data / gap_report / rewrites（另加 failures 展示告警）。
+        3. 上传诊断区：前置必填信息（含可到岗时间）+ 简历 PDF/TXT 上传或
+           粘贴文本 →「开始诊断」（一步同时产出 GapReport + Top3 改写）；
+        4. 结果导出区：匹配度仪表 + 左右对照视图（三色标注）+ 被排除指标留痕
+           + 改写建议 + 导出 PDF（诊断报告 / 中英简历）。
     按钮幂等：结果存于 state，Streamlit rerun 时直接从 state 渲染，
     不重复调用 LLM；只有用户再次点击按钮才会重新计算。
     错误处理（v1.1 S3）：每步独立 try-except，按 5 类异常给出对应提示，
@@ -46,6 +48,7 @@ from contracts import (
     LLMUnavailableError,
     PDFExportError,
     PDFParseError,
+    SearchUnavailableError,
 )
 
 # 状态三色（架构 v1.1 M5 冻结色值：绿/黄/红）
@@ -58,6 +61,13 @@ STATUS_STYLE = {
 # 演示案例注册表从 config 导入（第二轮审查 P0-3：单一来源，禁止另存字面量）
 DEMO_CASES = config.DEMO_CASES
 
+# 指标来源维度（v1.6）：jd_requirement 可勾选进评分；舆情/政策为只读环境情报
+SOURCE_TYPE_LABEL = {
+    "jd_requirement": "岗位直接要求",
+    "public_opinion": "舆情与体验",
+    "policy_background": "政策与背景",
+}
+
 
 def init_state() -> None:
     """初始化 session_state 契约键（幂等，重复调用安全）。
@@ -65,12 +75,16 @@ def init_state() -> None:
     P0-2 修订：契约键扩为 7 个——job_req / resume_data / gap_report /
     rewrites / rewrite_failures / demo_resume_file / pdf_bytes。
     第三轮需求扩展：新增 resume_zh_bytes / resume_en_bytes（中英简历 PDF）。
+    v1.6（第十二轮 Human-in-the-loop）：新增 pool_job（AI 提取的完整指标池，
+    待用户在决策阻断点确认）/ excluded_abilities（被排除指标）/ opinion_urls（舆情来源）。
     """
     for key in ("job_req", "resume_data", "gap_report", "rewrites",
                 "demo_resume_file", "demo_bg", "pdf_bytes",
-                "resume_zh_bytes", "resume_en_bytes", "search_urls"):
+                "resume_zh_bytes", "resume_en_bytes", "search_urls",
+                "pool_job", "opinion_urls"):
         st.session_state.setdefault(key, None)
     st.session_state.setdefault("rewrite_failures", [])
+    st.session_state.setdefault("excluded_abilities", [])
 
 
 def _clear_export_bytes() -> None:
@@ -81,6 +95,17 @@ def _clear_export_bytes() -> None:
     """
     for key in ("pdf_bytes", "resume_zh_bytes", "resume_en_bytes"):
         st.session_state[key] = None
+
+
+def _clear_pool_widgets() -> None:
+    """清除指标池控件的残留 state（v1.6）。
+
+    新指标池生成时调用：上一次池子的 pool_sel_/pool_star_ 键若残留，
+    新池同下标的控件会沿用旧勾选值（状态污染）。本函数只在新池写入前、
+    控件尚未实例化的运行帧内调用——绝不在控件渲染后删键（Streamlit 禁止）。
+    """
+    for key in [k for k in st.session_state if k.startswith(("pool_sel_", "pool_star_"))]:
+        del st.session_state[key]
 
 
 def show_error(exc: Exception) -> None:
@@ -199,20 +224,41 @@ def _run_job_search(query: str) -> None:
     try:
         with st.spinner("正在全网搜索相关 JD…"):
             found = search_client.search(query, bocha_key.strip() or None)
-        with st.spinner("AI 正在提取能力项…"):
-            new_job = job_analyzer.analyze_job(jd_text=found["text"])
+        # 舆情通道（v1.6 双通道检索，保险丝语义）：小红书/知乎评价摘要。
+        # 失败/未预热/无结果一律降级为 none，绝不阻塞主链路——
+        # 指标池中对应显示"暂无显著舆论风险"（与 server/main.py 同口径）
+        opinion_urls: list[str] = []
+        opinion_results = None
+        try:
+            with st.spinner("正在检索小红书/知乎的岗位评价…"):
+                opinion = search_client.search(
+                    search_client.build_opinion_query(query), bocha_key.strip() or None)
+            opinion_results = opinion["results"]
+            opinion_urls = opinion["urls"]
+        except (SearchUnavailableError, CacheMissError):
+            pass  # 舆情是增强维度，降级不影响 JD 主链路
+        with st.spinner("AI 正在从检索结果中提取指标池…"):
+            combined = search_client.synthesize_combined(query, found["results"], opinion_results)
+            new_job = job_analyzer.analyze_job(jd_text=combined)
         # 元字段标注（与 server/main.py search_job 端点同口径）
         new_job["job_id"] = "search"
-        new_job["source_note"] = f"AI 联网检索生成（{len(found['urls'])} 个网页摘要），请人工核验"
-        # P0-2 状态事务：与 _run_job_analysis 同一清场顺序，失败时旧状态原样保留
+        opinion_note = f"，含 {len(opinion_urls)} 条小红书/知乎舆情" if opinion_urls else "（未检索到舆情信息）"
+        new_job["source_note"] = (f"AI 联网检索生成（{len(found['urls'])} 个 JD 网页摘要"
+                                  f"{opinion_note}），请人工核验")
+        # P0-2 状态事务：与 _run_job_analysis 同一清场顺序，失败时旧状态原样保留；
+        # v1.6：写入 pool_job（决策阻断点），job_req 由指标池确认后才设置
         st.session_state["gap_report"] = None
         st.session_state["rewrites"] = None
         st.session_state["rewrite_failures"] = []
+        st.session_state["excluded_abilities"] = []
         st.session_state["demo_resume_file"] = None
         st.session_state["demo_bg"] = None
+        st.session_state["job_req"] = None
         _clear_export_bytes()
-        st.session_state["job_req"] = new_job
-        st.session_state["search_urls"] = found["urls"]  # 来源链接，岗位画像区展示
+        _clear_pool_widgets()  # 新池写入前清掉旧勾选/星级残留
+        st.session_state["pool_job"] = new_job
+        st.session_state["search_urls"] = found["urls"]      # JD 来源链接
+        st.session_state["opinion_urls"] = opinion_urls      # 舆情来源链接（可为空）
     except Exception as exc:
         show_error(exc)
 
@@ -232,16 +278,100 @@ def _run_job_analysis(job_id: str | None = None, jd_text: str | None = None,
         with st.spinner("AI 正在分析岗位要求…"):
             new_job = job_analyzer.analyze_job(job_id=job_id, jd_text=jd_text)
         # 分析成功才提交：先清空下游，再写入新岗位（失败时旧状态原样保留）
+        # v1.6：写入 pool_job（决策阻断点），job_req 由指标池确认后才设置
         st.session_state["gap_report"] = None
         st.session_state["rewrites"] = None
         st.session_state["rewrite_failures"] = []
+        st.session_state["excluded_abilities"] = []
         st.session_state["demo_resume_file"] = demo_resume_file  # None 即清空
         st.session_state["demo_bg"] = demo_bg                    # 固定背景随案例走
         st.session_state["search_urls"] = None  # 非检索路径清空来源链接
+        st.session_state["opinion_urls"] = None
+        st.session_state["job_req"] = None
         _clear_export_bytes()
-        st.session_state["job_req"] = new_job
+        _clear_pool_widgets()  # 新池写入前清掉旧勾选/星级残留
+        st.session_state["pool_job"] = new_job
     except Exception as exc:
         show_error(exc)
+
+
+def section_metric_pool() -> None:
+    """区块 1.5：指标池决策阻断点（v1.6 Human-in-the-loop 核心交互）。
+
+    AI 检索/解析出的完整指标池在此展示，用户批判性勾选 + 调整重要度，
+    点击「确认我的评估框架」后才写入 job_req 进入诊断链路——
+    评估标准由人构建，AI 只提供候选，这是"批判性评估信息"考核点的界面兑现。
+
+    分区逻辑（顾问决策，务必知悉）：jd_requirement 可勾选/调星级/进评分；
+    舆情与政策是岗位环境情报——任何简历都无法"命中"加班强度或带教风格，
+    进评分只会把分数无意义拉低，故只读展示、不参与 Gap 计算。
+
+    演示缓存语义：预热组合 = 默认全选 + 原始星级（gap_matcher 的缓存键
+    payload 只取 name/category/importance/evidence/is_core，不含 source_type，
+    默认全选的 filtered job 与预热键逐位一致）；demo 模式提示保持默认。
+    """
+    pool = st.session_state.get("pool_job")
+    if not pool:
+        return
+    st.header(f"AI 调研报告：{pool['job_title']}")
+    st.caption("AI 已为你全网调研。作为具备信息素养的大学生，请批判性地评估并构建你的衡量标准："
+               "勾选要纳入匹配的指标、调整重要度，然后确认你的评估框架。")
+    st.caption(f"信息来源：{pool['source_note']}")
+
+    abilities = pool["abilities"]
+    # 分区：匹配指标（可勾选，进评分） vs 环境情报（只读，不进评分）
+    match_items = [ab for ab in abilities
+                   if ab.get("source_type", "jd_requirement") == "jd_requirement"]
+    intel_items = [ab for ab in abilities
+                   if ab.get("source_type", "jd_requirement") != "jd_requirement"]
+
+    if pool.get("responsibilities"):
+        with st.expander(f"岗位职责（{len(pool['responsibilities'])} 条，点击展开）"):
+            for r in pool["responsibilities"]:
+                st.markdown(f"- {r}")
+
+    st.subheader(f"匹配指标（{len(match_items)} 项，勾选后进入 Gap 诊断）")
+    selected: list[dict] = []
+    excluded: list[dict] = []
+    for i, ab in enumerate(match_items):
+        cols = st.columns([1, 6, 2])
+        checked = cols[0].checkbox("采纳", value=True, key=f"pool_sel_{i}",
+                                   label_visibility="collapsed")
+        core_mark = "｜🎯 核心门槛" if ab.get("is_core") else ""
+        cols[1].markdown(f"**{ab['name']}**（{ab['category']}{core_mark}）  \n"
+                         f"依据：{ab['evidence']}")
+        star = cols[2].selectbox("重要度", [1, 2, 3, 4, 5],
+                                 index=max(0, min(4, int(ab["importance"]) - 1)),
+                                 key=f"pool_star_{i}", format_func=lambda n: "★" * n)
+        entry = {**ab, "importance": star}
+        (selected if checked else excluded).append(entry)
+
+    if intel_items:
+        st.subheader(f"环境情报（{len(intel_items)} 项，只读，不参与评分）")
+        st.caption("以下来自小红书/知乎舆情与政策背景——它们是岗位环境信息，"
+                   "简历无法「命中」，故不进入匹配度计算，仅供你决策参考。")
+        for ab in intel_items:
+            label = SOURCE_TYPE_LABEL.get(ab.get("source_type", ""), "环境情报")
+            st.markdown(f"- 🏷️ **{ab['name']}**（{label}）  \n  依据：{ab['evidence']}")
+        opinion_urls = st.session_state.get("opinion_urls")
+        if opinion_urls:
+            with st.expander(f"舆情来源链接（{len(opinion_urls)} 条）"):
+                for url in opinion_urls:
+                    st.markdown(f"- {url}")
+
+    if config.DEMO_CACHE_MODE:
+        st.info("演示缓存模式：预热数据对应「全部采纳 + 原始星级」——"
+                "请保持默认直接确认，改动勾选或星级将无法命中缓存。")
+
+    if st.button(f"✅ 确认我的评估框架（已采纳 {len(selected)} 项指标）", type="primary"):
+        if not selected:
+            st.warning("请至少采纳 1 项匹配指标——全部排除则无法进行 Gap 诊断")
+            return
+        # 事务提交：filtered job 写入 job_req，排除项留痕展示，指标池关闭
+        st.session_state["job_req"] = {**pool, "abilities": selected}
+        st.session_state["excluded_abilities"] = excluded
+        st.session_state["pool_job"] = None
+        st.rerun()
 
 
 def section_job_profile() -> None:
@@ -420,12 +550,15 @@ def section_result() -> None:
     # 测完一个岗位直接换下一个，无需重新上传；清场清单与 _run_job_analysis 同口径
     if st.button("🔄 换一个岗位试试（简历已保留，无需重新上传）"):
         st.session_state["job_req"] = None
+        st.session_state["pool_job"] = None
         st.session_state["gap_report"] = None
         st.session_state["rewrites"] = None
         st.session_state["rewrite_failures"] = []
+        st.session_state["excluded_abilities"] = []
         st.session_state["demo_resume_file"] = None
         st.session_state["demo_bg"] = None
         st.session_state["search_urls"] = None
+        st.session_state["opinion_urls"] = None
         _clear_export_bytes()
         st.session_state["switch_notice"] = True  # 选岗区展示引导提示（一次性）
         st.rerun()
@@ -455,6 +588,14 @@ def section_result() -> None:
                        unsafe_allow_html=True)
     for w in report["warnings"]:
         st.caption(f"⚠️ {w}")
+
+    # v1.6：被排除的 AI 建议指标留痕展示（Human-in-the-loop 的决策可追溯性——
+    # 诊断基于"你采纳的指标"，被排除项明示，拒绝黑盒）
+    excluded = st.session_state.get("excluded_abilities") or []
+    if excluded:
+        with st.expander(f"你在评估框架中排除的 AI 建议指标（{len(excluded)} 项，未参与本次评分）"):
+            for ab in excluded:
+                st.markdown(f"- ~~{ab['name']}~~（{ab['category']}）——{ab['evidence']}")
 
     # 改写建议（前后对照）
     rewrites = st.session_state.get("rewrites")
@@ -574,6 +715,7 @@ def main() -> None:
 
     init_state()
     section_job_select()
+    section_metric_pool()  # v1.6 决策阻断点：指标池确认后才出现岗位画像与诊断区
     section_job_profile()
     section_diagnose()
     section_result()

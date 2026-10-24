@@ -78,6 +78,7 @@ def _load_job_file(path: Path) -> JobRequirements:
     data.setdefault("source_note", "待人工核验")
     for ab in data["abilities"]:
         ab.setdefault("is_core", False)  # v1.4：未标注核心项的岗位默认无门槛否决
+        ab.setdefault("source_type", "jd_requirement")  # v1.6：预设库全部来自人工核验 JD
     return data  # type: ignore[return-value]
 
 
@@ -164,4 +165,5 @@ def analyze_job(job_id: str | None = None, jd_text: str | None = None) -> JobReq
     for ab in data["abilities"]:
         ab["importance_source"] = "LLM评估"
         ab.setdefault("is_core", False)  # v1.4：LLM 未标核心项时默认 False（保守无否决）
+        ab.setdefault("source_type", "jd_requirement")  # v1.6：缺省视为 JD 直接要求
     return data  # type: ignore[return-value]

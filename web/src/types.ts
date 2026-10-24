@@ -1,5 +1,9 @@
 /** 与后端 contracts.py 对齐的前端类型定义（字段名严格一致）。 */
 
+/** v1.6（Human-in-the-loop）：指标的信息来源通道——
+    jd_requirement 参与匹配评分；public_opinion / policy_background 为环境情报 */
+export type SourceType = "jd_requirement" | "public_opinion" | "policy_background";
+
 export interface AbilityItem {
   name: string;
   category: string;
@@ -7,6 +11,7 @@ export interface AbilityItem {
   importance_source: string;
   evidence: string;
   is_core: boolean; // v1.4：核心硬性能力（partial/missing 触发总分否决）
+  source_type: SourceType; // v1.6：指标池分区依据
 }
 
 export interface JobRequirements {
@@ -106,6 +111,8 @@ export interface SearchJobResponse {
   job: JobRequirements;
   source: string;
   source_urls: string[];
+  opinion_urls: string[]; // v1.6：舆情来源链接（小红书/知乎等体验讨论）
+  opinion_status: "ok" | "none"; // v1.6：舆情通道是否取到结果（none → "暂无显著舆论风险"）
 }
 
 /** 运算过程明细（后端 gap_matcher.score_breakdown 产出，前端只渲染不复算） */

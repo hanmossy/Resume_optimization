@@ -13,7 +13,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "具备文案写作与内容策划能力",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "数据复盘意识",
@@ -21,7 +22,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "能用数据复盘运营效果",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "网感与热点敏感",
@@ -29,7 +31,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "熟悉主流内容平台生态",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "执行力",
@@ -37,7 +40,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "执行力强，能推进多任务并行",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上",
@@ -45,7 +49,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "本科及以上学历在读",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",

@@ -13,7 +13,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "了解信贷、风控基本流程",
-      "is_core": true
+      "is_core": true,
+      "source_type": "jd_requirement"
     },
     {
       "name": "数据处理能力",
@@ -21,7 +22,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "熟练使用 Excel，会 SQL 者优先",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "风险敏感性",
@@ -29,7 +31,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "对数据异常和风险信号敏感",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "严谨细致",
@@ -37,7 +40,8 @@
       "importance": 4,
       "importance_source": "人工核定",
       "evidence": "工作严谨，责任心强",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     },
     {
       "name": "本科在读及以上",
@@ -45,7 +49,8 @@
       "importance": 3,
       "importance_source": "人工核定",
       "evidence": "本科及以上学历在读",
-      "is_core": false
+      "is_core": false,
+      "source_type": "jd_requirement"
     }
   ],
   "salary_hint": "",
