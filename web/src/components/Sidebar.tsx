@@ -63,7 +63,9 @@ export default function Sidebar({ apiKey, onApiKeyChange, bochaKey, onBochaKeyCh
 
         <div className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">
           <div className="mb-1 font-medium text-slate-600">评分口径</div>
-          匹配度 = Σ(重要度 × 命中系数)，已具备 1.0 / 部分匹配 0.5 / 缺失 0.0。AI 只做判断，分数由规则公式计算。
+          匹配度 = Σ(权重 × 命中系数) ÷ Σ权重 × 100。系数：已具备(强/弱证据) 1.0 / 0.7、
+          部分匹配 0.4、缺失 0.0；软技能权重 5 折；核心门槛未达标总分 ×0.6 且封顶 60。
+          AI 只做判断，分数由规则公式计算。
         </div>
       </div>
 
