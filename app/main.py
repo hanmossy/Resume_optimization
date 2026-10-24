@@ -26,6 +26,8 @@
 
 from __future__ import annotations
 
+import re
+
 import streamlit as st
 
 import config
@@ -284,20 +286,18 @@ def section_diagnose() -> None:
     demo_mode = bool(demo_file and demo_bg)
     if demo_mode:
         st.info(f"已载入演示配套简历：{demo_file}｜背景已固定为："
-                f"{demo_bg['年级']} / {demo_bg['专业']} / 目标{demo_bg['目标']}（点击「开始诊断」即可）")
+                f"{demo_bg['年级']} / {demo_bg['专业']} / 目标{demo_bg['目标']} / "
+                f"{demo_bg.get('availability', '')}（点击「开始诊断」即可）")
     elif st.session_state.get("resume_data"):
         # 一键换岗后的保留简历提示（非演示路径）：免上传直接诊断
         kept = st.session_state["resume_data"].get("name") or "已解析简历"
         st.success(f"已为你保留简历（{kept}），可直接点击「开始诊断」；如需更换，重新上传或粘贴新文本即可。")
 
-    uploaded = st.file_uploader("上传简历（PDF / TXT）", type=["pdf", "txt"],
-                                disabled=demo_mode)
-    pasted = st.text_area("或直接粘贴简历文本（扫描件 PDF 请走这里）", height=120,
-                          disabled=demo_mode)
-    # 背景信息收进带说明标题的容器（第十一轮 UI 指令：降低表单压迫感，
-    # 并让用户知道"填了有什么用"——AI 按阶段调整评估基线）
+    # 前置必填信息（第十二轮指令：面板改名并上移到上传区之前）——
+    # 可到岗实习时间是"实习时长/稳定性"类能力项的判断前提，不填不能诊断；
+    # 年级/专业供 AI 按阶段调整软性指标基线，核心硬门槛恒定不变
     with st.container(border=True):
-        st.caption("**补充背景信息**（选填，AI 将根据你的阶段调整评估标准）")
+        st.caption("**前置必填信息**（AI 将根据你的阶段与可到岗时间调整评估标准）")
         st.caption("AI 会根据你的当前阶段动态调整部分软性指标的期望值"
                    "（例如，对大二学生的实习项目要求与大四求职不同）。"
                    "但岗位的核心硬门槛标准恒定不变。")
@@ -306,11 +306,51 @@ def section_diagnose() -> None:
                                   disabled=demo_mode)
         major = cols[1].text_input("专业", disabled=demo_mode)
         goal = cols[2].selectbox("目标", ["实习", "求职"], disabled=demo_mode)
+        cols2 = st.columns(3)
+        avail_start = cols2[0].text_input("实习开始月份", placeholder="如 2026-01",
+                                          disabled=demo_mode)
+        avail_end = cols2[1].text_input("实习结束月份", placeholder="如 2026-06",
+                                        disabled=demo_mode)
+        avail_days = cols2[2].selectbox("每周到岗", ["3 天以下", "3-4 天", "5 天全勤"],
+                                        index=1, disabled=demo_mode)
+
+    uploaded = st.file_uploader("上传简历（PDF / TXT）", type=["pdf", "txt"],
+                                disabled=demo_mode)
+    pasted = st.text_area("或直接粘贴简历文本（扫描件 PDF 请走这里）", height=120,
+                          disabled=demo_mode)
 
     if st.button("开始诊断", type="primary"):
-        # 演示路径用注册表固定背景；自由路径用用户输入
-        background = demo_bg if demo_mode else {"年级": grade, "专业": major or "未填写", "目标": goal}
+        # 演示路径用注册表固定背景（含 availability）；自由路径现场组装并校验
+        if demo_mode:
+            _run_diagnosis(uploaded, pasted, demo_file, demo_bg)
+            return
+        availability = _build_availability(avail_start, avail_end, avail_days)
+        if availability is None:
+            st.warning("请填写可到岗实习的起止月份（格式如 2026-01，开始不晚于结束）——"
+                       "实习时间是 AI 判断「实习时长/稳定性」要求的必要前提")
+            return
+        background = {"年级": grade, "专业": major or "未填写", "目标": goal,
+                      "availability": availability}
         _run_diagnosis(uploaded, pasted, demo_file, background)
+
+
+_MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+
+
+def _build_availability(start: str, end: str, days: str) -> str | None:
+    """合成 availability 字符串（如 "可实习 2026-01 至 2026-06，每周 3-4 天"）。
+
+    Args:
+        start/end: 用户填写的起止月份，要求 YYYY-MM 格式且 start <= end。
+        days: 每周到岗选项原文（"3 天以下" / "3-4 天" / "5 天全勤"）。
+
+    Returns:
+        合成后的 availability 字符串；输入非法时返回 None（调用方负责提示）。
+    """
+    start, end = start.strip(), end.strip()
+    if not (_MONTH_RE.match(start) and _MONTH_RE.match(end)) or start > end:
+        return None
+    return f"可实习 {start} 至 {end}，每周 {days}"
 
 
 def _run_diagnosis(uploaded, pasted: str, demo_file: str | None, background: dict[str, str]) -> None:

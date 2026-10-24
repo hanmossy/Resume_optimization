@@ -72,6 +72,14 @@
       "importance_source": "人工核定",
       "evidence": "本科及以上学历在读，数学、统计、计算机、经管类专业优先",
       "is_core": false
+    },
+    {
+      "name": "实习时间保障",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "JD 要求：实习期 3 个月及以上，每周可到岗 4 天及以上",
+      "is_core": true
     }
   ],
   "salary_hint": "200-300 元/天（参考同类公开实习岗位区间，非 JD 原文）",

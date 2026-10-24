@@ -64,6 +64,14 @@
       "importance_source": "人工核定",
       "evidence": "全日制本科及以上学历在读，财会类专业优先",
       "is_core": false
+    },
+    {
+      "name": "实习时间保障",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "JD 要求：忙季实习期 3 个月及以上，每周可到岗 5 天",
+      "is_core": true
     }
   ],
   "salary_hint": "",

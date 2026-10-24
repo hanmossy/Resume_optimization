@@ -224,6 +224,11 @@ async def diagnose(body: DiagnoseRequest,
                    session_id: str = Depends(verify_access),
                    _key: None = Depends(inject_byok)) -> dict:
     """Gap 诊断 + Top3 改写（一次调用串联两步，对齐"2 次点击"交互约束）。"""
+    # v1.5 前置必填护栏（第十二轮指令）：可到岗实习时间是诊断的必要输入——
+    # 缺它，"实习时长/稳定性"类能力项无从判断；422 在扣额度之前拦截
+    if not body.background.availability.strip():
+        raise HTTPException(status_code=422,
+                            detail="请先填写可到岗实习时间（前置必填信息），再开始诊断")
     check_session_quota(session_id)  # LLM 调用（gap_judge + gap_rewrite×N）
     resume = resume_from_wire(body.resume)
     report = await run_in_threadpool(

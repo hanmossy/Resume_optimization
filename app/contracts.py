@@ -24,7 +24,7 @@ from typing import Any, Literal, TypedDict
 # ---------------------------------------------------------------------------
 
 # v1.2：resume_extract 升级为富结构 v2.0（name/contacts/entries），旧缓存自动失效
-SCHEMA_VERSION: str = "1.4"
+SCHEMA_VERSION: str = "1.5"
 
 # Gap 命中状态的合法取值，同时驱动 UI 三色标注（绿/黄/红）
 GapStatus = Literal["matched", "partial", "missing"]

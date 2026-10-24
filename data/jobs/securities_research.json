@@ -64,6 +64,14 @@
       "importance_source": "人工核定",
       "evidence": "重点院校本科及以上在读，金融、经济、会计等专业优先",
       "is_core": false
+    },
+    {
+      "name": "实习时间保障",
+      "category": "背景门槛",
+      "importance": 3,
+      "importance_source": "人工核定",
+      "evidence": "JD 要求：实习期 3 个月及以上，每周可到岗 3-4 天",
+      "is_core": true
     }
   ],
   "salary_hint": "",

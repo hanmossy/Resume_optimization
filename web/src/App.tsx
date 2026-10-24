@@ -8,7 +8,7 @@ import JobSelect from "./components/JobSelect";
 import ResultSection from "./components/ResultSection";
 import Sidebar from "./components/Sidebar";
 import type {
-  DemoCase, DiagnoseResponse, GapReport, JobMeta, JobRequirements,
+  Background, DemoCase, DiagnoseResponse, GapReport, JobMeta, JobRequirements,
   ResumeData, RewriteResult, ScoreDetail,
 } from "./types";
 
@@ -84,7 +84,7 @@ export default function App() {
   const [serverDown, setServerDown] = useState(false);
   const [demoHint, setDemoHint] = useState<string | null>(null);
   const [demoResumeText, setDemoResumeText] = useState<string | null>(null);
-  const [demoBg, setDemoBg] = useState<{ 年级: string; 专业: string; 目标: string } | null>(null);
+  const [demoBg, setDemoBg] = useState<Background | null>(null);
   const [notice, setNotice] = useState<string | null>(null);  // 一键换岗后的引导提示
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -193,13 +193,13 @@ export default function App() {
       setJob(j);
       setDemoResumeText(r.text);
       setDemoBg(c.background);
-      setDemoHint(`已载入演示配套简历：${c.resume_file}｜背景已固定为：${c.background.年级} / ${c.background.专业} / 目标${c.background.目标}（点击「开始诊断」即可）`);
+      setDemoHint(`已载入演示配套简历：${c.resume_file}｜背景已固定为：${c.background.年级} / ${c.background.专业} / 目标${c.background.目标} / ${c.background.availability}（点击「开始诊断」即可）`);
     } catch (e) { handleError(e); } finally { setBusy(false); }
   }, [clearDownstream, handleError]);
 
   const runDiagnose = useCallback(async (input: {
     file: File | null; text: string;
-    background: { 年级: string; 专业: string; 目标: string };
+    background: Background;
   }) => {
     if (!job) return;
     const background = demoBg ?? input.background;

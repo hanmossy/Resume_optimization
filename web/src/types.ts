@@ -79,11 +79,19 @@ export interface JobMeta {
   is_demo: boolean;
 }
 
+/** 求职者背景（v1.5 新增 availability：可到岗实习时间，gap_judge 规则 6/7 的输入）。 */
+export interface Background {
+  年级: string;
+  专业: string;
+  目标: string;
+  availability: string;
+}
+
 export interface DemoCase {
   label: string;
   job_id: string;
   resume_file: string;
-  background: { 年级: string; 专业: string; 目标: string };
+  background: Background;
 }
 
 export interface DiagnoseResponse {

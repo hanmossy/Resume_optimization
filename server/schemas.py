@@ -36,14 +36,21 @@ class SearchJobRequest(BaseModel):
 
 
 class Background(BaseModel):
-    """用户背景信息（进入 gap_judge 的缓存键，字段名与 DEMO_CASES 一致）。"""
+    """用户背景信息（进入 gap_judge 的缓存键，字段名与 DEMO_CASES 一致）。
+
+    v1.5 新增 availability（可到岗实习时间，如 "可实习 2026-01 至 2026-06，
+    每周 5 天全勤"）：前端由"起止月份 + 每周到岗"两个输入合成；
+    供 gap_judge 规则 6（实习时间匹配）与规则 7（背景门槛防误判）使用。
+    """
 
     年级: str = "大三"
     专业: str = "未填写"
     目标: str = "实习"
+    availability: str = ""
 
     def to_dict(self) -> dict[str, str]:
-        return {"年级": self.年级, "专业": self.专业, "目标": self.目标}
+        return {"年级": self.年级, "专业": self.专业, "目标": self.目标,
+                "availability": self.availability}
 
 
 class DiagnoseRequest(BaseModel):
