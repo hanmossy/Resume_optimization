@@ -24,7 +24,7 @@ from typing import Any, Literal, TypedDict
 # ---------------------------------------------------------------------------
 
 # v1.2：resume_extract 升级为富结构 v2.0（name/contacts/entries），旧缓存自动失效
-SCHEMA_VERSION: str = "1.6"
+SCHEMA_VERSION: str = "1.7"
 
 # Gap 命中状态的合法取值，同时驱动 UI 三色标注（绿/黄/红）
 GapStatus = Literal["matched", "partial", "missing"]
@@ -37,8 +37,11 @@ ImportanceSource = Literal["人工核定", "LLM评估"]
 # v1.6（第十二轮 Human-in-the-loop 指令）：能力项的信息来源通道——
 # jd_requirement=JD 直接要求（参与匹配评分）；public_opinion=舆情体验
 # 与 policy_background=政策背景（环境情报，仅供求职决策参考，不进评分公式）
-SourceType = Literal["jd_requirement", "public_opinion", "policy_background"]
-LEGAL_SOURCE_TYPES: tuple[str, ...] = ("jd_requirement", "public_opinion", "policy_background")
+# v1.7（第十三轮反虚高指令）：expert_inference=行业隐性门槛（AI 结合行业常识
+# 推断的硬技能，参与匹配评分，UI 标注"AI 推断请审核"交由用户取舍）
+SourceType = Literal["jd_requirement", "public_opinion", "policy_background", "expert_inference"]
+LEGAL_SOURCE_TYPES: tuple[str, ...] = ("jd_requirement", "public_opinion",
+                                       "policy_background", "expert_inference")
 
 
 # ---------------------------------------------------------------------------

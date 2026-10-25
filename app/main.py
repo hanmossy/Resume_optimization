@@ -61,12 +61,18 @@ STATUS_STYLE = {
 # 演示案例注册表从 config 导入（第二轮审查 P0-3：单一来源，禁止另存字面量）
 DEMO_CASES = config.DEMO_CASES
 
-# 指标来源维度（v1.6）：jd_requirement 可勾选进评分；舆情/政策为只读环境情报
+# 指标来源维度（v1.6/v1.7）：jd_requirement 与 expert_inference 可勾选进评分；
+# 舆情/政策为只读环境情报
 SOURCE_TYPE_LABEL = {
     "jd_requirement": "岗位直接要求",
     "public_opinion": "舆情与体验",
     "policy_background": "政策与背景",
+    "expert_inference": "🧠 行业隐性门槛（AI 推断，请审核）",
 }
+
+# 评分分区判定（v1.7）：只有 JD 直接要求与 AI 行业推断参与 Gap 评分；
+# 缺省按 jd_requirement 处理（与后端兜底同口径）
+SCORABLE_SOURCE_TYPES = ("jd_requirement", "expert_inference")
 
 
 def init_state() -> None:
@@ -224,9 +230,16 @@ def _run_job_search(query: str) -> None:
     try:
         with st.spinner("正在全网搜索相关 JD…"):
             found = search_client.search(query, bocha_key.strip() or None)
-        # 舆情通道（v1.6 双通道检索，保险丝语义）：小红书/知乎评价摘要。
-        # 失败/未预热/无结果一律降级为 none，绝不阻塞主链路——
-        # 指标池中对应显示"暂无显著舆论风险"（与 server/main.py 同口径）
+        # 面经通道（v1.7 反虚高）+ 舆情通道（v1.6）：均为保险丝增强项，
+        # 失败/未预热/无结果一律降级，绝不阻塞 JD 主链路
+        insider_results = None
+        try:
+            with st.spinner("正在挖掘面经与真实门槛…"):
+                insider = search_client.search(
+                    search_client.build_insider_query(query), bocha_key.strip() or None)
+            insider_results = insider["results"]
+        except (SearchUnavailableError, CacheMissError):
+            pass  # 面经缺失时由 job_extract 凭行业经验校准隐性要求
         opinion_urls: list[str] = []
         opinion_results = None
         try:
@@ -237,14 +250,16 @@ def _run_job_search(query: str) -> None:
             opinion_urls = opinion["urls"]
         except (SearchUnavailableError, CacheMissError):
             pass  # 舆情是增强维度，降级不影响 JD 主链路
-        with st.spinner("AI 正在从检索结果中提取指标池…"):
-            combined = search_client.synthesize_combined(query, found["results"], opinion_results)
+        with st.spinner("AI 正在结合行业常识提取指标池（含隐性门槛推断）…"):
+            combined = search_client.synthesize_combined(
+                query, found["results"], opinion_results, insider_results)
             new_job = job_analyzer.analyze_job(jd_text=combined)
         # 元字段标注（与 server/main.py search_job 端点同口径）
         new_job["job_id"] = "search"
-        opinion_note = f"，含 {len(opinion_urls)} 条小红书/知乎舆情" if opinion_urls else "（未检索到舆情信息）"
-        new_job["source_note"] = (f"AI 联网检索生成（{len(found['urls'])} 个 JD 网页摘要"
-                                  f"{opinion_note}），请人工核验")
+        insider_note = f"{len(insider_results)} 条面经" if insider_results else "无面经"
+        opinion_note = f"{len(opinion_urls)} 条舆情" if opinion_urls else "无舆情"
+        new_job["source_note"] = (f"AI 联网检索生成（{len(found['urls'])} 个 JD 摘要 + "
+                                  f"{insider_note} + {opinion_note}），含行业隐性门槛推断，请人工核验")
         # P0-2 状态事务：与 _run_job_analysis 同一清场顺序，失败时旧状态原样保留；
         # v1.6：写入 pool_job（决策阻断点），job_req 由指标池确认后才设置
         st.session_state["gap_report"] = None
@@ -302,9 +317,10 @@ def section_metric_pool() -> None:
     点击「确认我的评估框架」后才写入 job_req 进入诊断链路——
     评估标准由人构建，AI 只提供候选，这是"批判性评估信息"考核点的界面兑现。
 
-    分区逻辑（顾问决策，务必知悉）：jd_requirement 可勾选/调星级/进评分；
-    舆情与政策是岗位环境情报——任何简历都无法"命中"加班强度或带教风格，
-    进评分只会把分数无意义拉低，故只读展示、不参与 Gap 计算。
+    分区逻辑（顾问决策，务必知悉）：jd_requirement 与 expert_inference（v1.7 行业
+    隐性门槛，AI 推断请审核）可勾选/调星级/进评分；舆情与政策是岗位环境情报——
+    任何简历都无法"命中"加班强度或带教风格，进评分只会把分数无意义拉低，
+    故只读展示、不参与 Gap 计算。
 
     演示缓存语义：预热组合 = 默认全选 + 原始星级（gap_matcher 的缓存键
     payload 只取 name/category/importance/evidence/is_core，不含 source_type，
@@ -319,11 +335,12 @@ def section_metric_pool() -> None:
     st.caption(f"信息来源：{pool['source_note']}")
 
     abilities = pool["abilities"]
-    # 分区：匹配指标（可勾选，进评分） vs 环境情报（只读，不进评分）
+    # 分区：匹配指标（JD 直接要求 + AI 行业推断，可勾选进评分）
+    #       vs 环境情报（舆情/政策，只读不进评分）
     match_items = [ab for ab in abilities
-                   if ab.get("source_type", "jd_requirement") == "jd_requirement"]
+                   if ab.get("source_type", "jd_requirement") in SCORABLE_SOURCE_TYPES]
     intel_items = [ab for ab in abilities
-                   if ab.get("source_type", "jd_requirement") != "jd_requirement"]
+                   if ab.get("source_type", "jd_requirement") not in SCORABLE_SOURCE_TYPES]
 
     if pool.get("responsibilities"):
         with st.expander(f"岗位职责（{len(pool['responsibilities'])} 条，点击展开）"):
@@ -338,8 +355,12 @@ def section_metric_pool() -> None:
         checked = cols[0].checkbox("采纳", value=True, key=f"pool_sel_{i}",
                                    label_visibility="collapsed")
         core_mark = "｜🎯 核心门槛" if ab.get("is_core") else ""
-        cols[1].markdown(f"**{ab['name']}**（{ab['category']}{core_mark}）  \n"
-                         f"依据：{ab['evidence']}")
+        # v1.7：行业隐性门槛打 🧠 标签（AI 推断，交由用户审核取舍）
+        infer_mark = "｜🧠 行业隐性门槛（AI 推断，请审核）" \
+            if ab.get("source_type") == "expert_inference" else ""
+        evidence_label = "推断依据" if ab.get("source_type") == "expert_inference" else "JD 依据"
+        cols[1].markdown(f"**{ab['name']}**（{ab['category']}{core_mark}{infer_mark}）  \n"
+                         f"{evidence_label}：{ab['evidence']}")
         star = cols[2].selectbox("重要度", [1, 2, 3, 4, 5],
                                  index=max(0, min(4, int(ab["importance"]) - 1)),
                                  key=f"pool_star_{i}", format_func=lambda n: "★" * n)

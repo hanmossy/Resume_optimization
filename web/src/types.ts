@@ -2,7 +2,7 @@
 
 /** v1.6（Human-in-the-loop）：指标的信息来源通道——
     jd_requirement 参与匹配评分；public_opinion / policy_background 为环境情报 */
-export type SourceType = "jd_requirement" | "public_opinion" | "policy_background";
+export type SourceType = "jd_requirement" | "public_opinion" | "policy_background" | "expert_inference";
 
 export interface AbilityItem {
   name: string;

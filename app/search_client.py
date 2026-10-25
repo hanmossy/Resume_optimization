@@ -97,12 +97,20 @@ def _synthesize_text(query: str, results: list[dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
+def _strip_jd_words(query: str) -> str:
+    """剥离 JD 导向词，保留公司+岗位主体（派生检索词的公共基础，纯函数）。"""
+    base = query.strip()
+    for word in ("招聘要求", "招聘", "JD", "jd"):
+        base = base.replace(word, " ")
+    return " ".join(base.split())  # 收敛多余空白，保证缓存键逐位稳定
+
+
 def build_opinion_query(query: str) -> str:
     """从 JD 检索词派生舆情检索词（纯函数，第十二轮 v1.6）。
 
-    策略（硬编码，演示稳定性优先）：剥离 JD 导向词（招聘要求/招聘/JD），
-    保留公司+岗位主体，追加评价导向关键词与平台名（小红书/知乎——博查为
-    语义搜索，site: 语法无效，平台名直接进 query 文本引导）。
+    策略（硬编码，演示稳定性优先）：保留公司+岗位主体，追加评价导向关键词
+    与平台名（小红书/知乎——博查为语义搜索，site: 语法无效，平台名直接进
+    query 文本引导）。
 
     Args:
         query: 原始 JD 检索词，如 "字节跳动 数据分析 实习 招聘要求"。
@@ -110,34 +118,60 @@ def build_opinion_query(query: str) -> str:
     Returns:
         舆情检索词，如 "字节跳动 数据分析 实习 怎么样 评价 避雷 加班 转正 小红书 知乎"。
     """
-    base = query.strip()
-    for word in ("招聘要求", "招聘", "JD", "jd"):
-        base = base.replace(word, " ")
-    base = " ".join(base.split())  # 收敛多余空白，保证缓存键逐位稳定
-    return f"{base} {config.OPINION_QUERY_SUFFIX}"
+    return f"{_strip_jd_words(query)} {config.OPINION_QUERY_SUFFIX}"
+
+
+def build_insider_query(query: str) -> str:
+    """从 JD 检索词派生"面经/真实门槛"检索词（纯函数，第十三轮 v1.7）。
+
+    背景（反虚高）：企业实习生 JD 常写得极宽（"不限专业、接受无经验"），
+    只搜 JD 字面要求会导致指标池全是"本科在读"式的宽门槛，匹配度必然虚高。
+    本通道专挖面经/笔试/技能讨论中的真实筛选标准。
+
+    Args:
+        query: 原始 JD 检索词，如 "安永 审计 寒假实习 招聘要求"。
+
+    Returns:
+        面经检索词，如 "安永 审计 寒假实习 面经 要求 难吗 技能 笔试 面试"。
+    """
+    return f"{_strip_jd_words(query)} {config.INSIDER_QUERY_SUFFIX}"
 
 
 def synthesize_combined(query: str, jd_results: list[dict[str, str]],
-                        opinion_results: list[dict[str, str]] | None) -> str:
-    """合成"JD 段 + 舆情段"的双段检索文本（纯函数，v1.6），供 job_extract 抽取。
+                        opinion_results: list[dict[str, str]] | None,
+                        insider_results: list[dict[str, str]] | None = None) -> str:
+    """合成"JD 段 + 面经段 + 舆情段"的三段检索文本（纯函数），供 job_extract 抽取。
 
-    分段标注是 prompt 区分 source_type 的依据：舆情段摘要提取出的指标
-    标 public_opinion / policy_background，JD 段标 jd_requirement。
+    分段标注是 prompt 区分 source_type 的依据：JD 段 → jd_requirement；
+    面经段（v1.7）→ 真实门槛素材，辅助挖掘 expert_inference 隐性硬技能；
+    舆情段 → public_opinion / policy_background。
     格式确定、逐位可复现——下游 job_extract 缓存键稳定的前提。
 
     Args:
         query: 原始检索词（标题行，提供岗位语境）。
         jd_results: JD 通道的 _extract_results 输出。
         opinion_results: 舆情通道输出；None/空列表表示舆情降级（无显著舆论）。
+        insider_results: 面经/真实门槛通道输出（v1.7）；None/空列表表示降级。
 
     Returns:
-        双段合成文本；舆情缺省时只含 JD 段并显式标注"未检索到舆情信息"。
+        三段合成文本；任一通道缺省时显式标注"未检索到"，段序固定。
     """
     lines = [f"以下是关于「{query}」的 {len(jd_results)} 条公开招聘信息摘要，请据此提取岗位要求："]
     for i, r in enumerate(jd_results, 1):
         lines.append(f"【{i}】{r['name']}")
         lines.append(f"来源：{r['url']}")
         lines.append(f"摘要：{r['snippet']}")
+    lines.append("")
+    if insider_results:
+        lines.append(f"以下是 {len(insider_results)} 条面经/求职讨论摘要（真实门槛素材："
+                     "过来人提到的实际技能要求、笔试面试难度、工作强度），"
+                     "请据此校准岗位的真实筛选标准：")
+        for i, r in enumerate(insider_results, 1):
+            lines.append(f"【面经{i}】{r['name']}")
+            lines.append(f"来源：{r['url']}")
+            lines.append(f"摘要：{r['snippet']}")
+    else:
+        lines.append("（本次未检索到面经/真实门槛讨论，请依据你的行业经验校准隐性要求。）")
     lines.append("")
     if opinion_results:
         lines.append(f"以下是来自小红书/知乎的 {len(opinion_results)} 条岗位评价与体验讨论摘要"

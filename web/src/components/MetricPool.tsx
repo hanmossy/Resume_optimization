@@ -6,10 +6,16 @@ import type { AbilityItem, JobRequirements } from "../types";
  *
  * 流程位置：AI 提取岗位后 → 本面板（决策阻断点）→ 用户确认评估框架 → 上传简历诊断。
  * 分区设计（架构决策，防止评分荒谬）：
- *   - 匹配指标（jd_requirement）：可勾选、可调星级，只有它们进入 Gap 评分；
+ *   - 匹配指标（jd_requirement + expert_inference）：可勾选、可调星级，只有它们进入
+ *     Gap 评分；expert_inference 是 v1.7 的"行业隐性门槛"（AI 结合面经/行业常识
+ *     推断，JD 广告未明说的真实筛选标准），UI 打 🧠 标签交由用户审核取舍；
  *   - 环境情报（public_opinion / policy_background）：加班/转正/政策等岗位环境信息，
  *     任何简历都无法"命中"，只读展示供求职决策参考，UI 明示不参与评分。
  */
+
+/** 评分分区判定：只有 JD 直接要求与 AI 行业推断参与 Gap 评分（v1.7） */
+const isScorable = (st: AbilityItem["source_type"] | undefined) =>
+  st === "jd_requirement" || st === "expert_inference" || st === undefined;
 
 const CATEGORY_STYLE: Record<string, string> = {
   硬技能: "bg-indigo-50 text-indigo-600",
@@ -50,11 +56,11 @@ interface Props {
 
 export default function MetricPool({ job, opinionUrls, opinionStatus, demoCacheMode, busy, onConfirm }: Props) {
   const matchItems = useMemo(
-    () => job.abilities.map((a, i) => ({ a, i })).filter(({ a }) => a.source_type === "jd_requirement"),
+    () => job.abilities.map((a, i) => ({ a, i })).filter(({ a }) => isScorable(a.source_type)),
     [job],
   );
   const infoItems = useMemo(
-    () => job.abilities.filter((a) => a.source_type !== "jd_requirement"),
+    () => job.abilities.filter((a) => !isScorable(a.source_type)),
     [job],
   );
 
@@ -124,6 +130,12 @@ export default function MetricPool({ job, opinionUrls, opinionStatus, demoCacheM
                 {a.is_core && (
                   <span className="rounded bg-red-50 px-1 py-0.5 text-xs text-red-600">核心门槛</span>
                 )}
+                {a.source_type === "expert_inference" && (
+                  <span className="rounded bg-violet-50 px-1 py-0.5 text-xs text-violet-600"
+                        title="JD 未明说、由 AI 结合面经与行业常识推断的真实筛选标准，请审核后决定是否采纳">
+                    🧠 行业隐性门槛（AI 推断，请审核）
+                  </span>
+                )}
               </div>
               <StarPicker value={stars[i] ?? a.importance} disabled={!sel[i]}
                           onChange={(v) => setStars((s) => ({ ...s, [i]: v }))} />
@@ -134,7 +146,9 @@ export default function MetricPool({ job, opinionUrls, opinionStatus, demoCacheM
               </span>
               <span className="text-slate-400">{a.importance_source}</span>
             </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">JD 依据：{a.evidence}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+              {a.source_type === "expert_inference" ? "推断依据" : "JD 依据"}：{a.evidence}
+            </p>
           </div>
         ))}
       </div>

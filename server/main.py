@@ -30,6 +30,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -190,25 +191,37 @@ async def search_job(body: SearchJobRequest,
         job 是独立字段——下游 /api/diagnose 只认 job，来源信息仅供展示。
         v1.6（第十二轮 Human-in-the-loop）：双通道检索——JD 摘要 + 小红书/知乎
         舆情摘要合并进 job_extract，产出带 source_type 的指标池（含环境情报）。
+        v1.7（第十三轮反虚高）：新增面经/真实门槛通道——JD 广告常写得极宽，
+        真实筛选标准藏在面经里；三通道合成喂给 job_extract v1.4。
     """
     check_session_quota(session_id)
     found = await run_in_threadpool(search_client.search, body.query, bocha_key or None)
-    # 舆情通道（保险丝）：失败/未预热/无结果一律降级为 none，绝不阻塞主链路
-    opinion_urls: list[str] = []
-    opinion_results: list[dict[str, str]] | None = None
-    try:
-        opinion = await run_in_threadpool(
-            search_client.search, search_client.build_opinion_query(body.query), bocha_key or None)
-        opinion_results = opinion["results"]
-        opinion_urls = opinion["urls"]
-    except (SearchUnavailableError, CacheMissError):
-        pass  # 舆情是增强维度：降级后指标池显示"暂无显著舆论风险"
-    combined = search_client.synthesize_combined(body.query, found["results"], opinion_results)
+
+    # 面经通道 + 舆情通道（均为保险丝增强项）：失败/未预热/无结果一律降级，
+    # 绝不阻塞 JD 主链路；两通道并发执行以压低总时延
+    async def _fused_search(q: str) -> dict | None:
+        try:
+            return await run_in_threadpool(search_client.search, q, bocha_key or None)
+        except (SearchUnavailableError, CacheMissError):
+            return None
+
+    insider, opinion = await asyncio.gather(
+        _fused_search(search_client.build_insider_query(body.query)),
+        _fused_search(search_client.build_opinion_query(body.query)),
+    )
+    insider_results = insider["results"] if insider else None
+    opinion_results = opinion["results"] if opinion else None
+    opinion_urls = opinion["urls"] if opinion else []
+
+    combined = search_client.synthesize_combined(
+        body.query, found["results"], opinion_results, insider_results)
     job = await run_in_threadpool(job_analyzer.analyze_job, None, combined)
     # 覆盖元字段：标注检索来源（importance_source 已被 analyze_job 标为 LLM评估）
     job["job_id"] = "search"
-    opinion_note = f"，含 {len(opinion_urls)} 条小红书/知乎舆情" if opinion_urls else "（未检索到舆情信息）"
-    job["source_note"] = f"AI 联网检索生成（{len(found['urls'])} 个 JD 网页摘要{opinion_note}），请人工核验"
+    insider_note = f"{len(insider_results)} 条面经" if insider_results else "无面经"
+    opinion_note = f"{len(opinion_urls)} 条舆情" if opinion_urls else "无舆情"
+    job["source_note"] = (f"AI 联网检索生成（{len(found['urls'])} 个 JD 摘要 + "
+                          f"{insider_note} + {opinion_note}），含行业隐性门槛推断，请人工核验")
     return {"job": dict(job), "source": "AI联网检索", "source_urls": found["urls"],
             "opinion_urls": opinion_urls,
             "opinion_status": "ok" if opinion_urls else "none"}

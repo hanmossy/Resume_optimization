@@ -166,9 +166,11 @@ def prewarm_search_case() -> bool:
     """
     import search_client  # 局部导入：仅本函数使用
 
-    # 演示词表：字节（config 单一来源）+ 腾讯（拍摄脚本备用词）。
+    # 演示词表：字节/腾讯（既有案例）+ 安永（第十三轮反虚高验收案例）。
     # 演示时检索词必须与此处逐字一致，否则缓存键不同、必然 CacheMiss。
-    queries = [config.SEARCH_DEMO_QUERY, "腾讯 产品经理 实习 招聘要求"]
+    queries = [config.SEARCH_DEMO_QUERY,
+               "腾讯 产品经理 实习 招聘要求",
+               "安永 审计 寒假实习 招聘要求"]
     if not config.BOCHA_API_KEY:
         print(f"\n⚠️ 未配置 BOCHA_API_KEY，跳过联网检索案例预热（{queries}）。")
         print("   注册 https://bochaai.com/ 后在 .env 写入 BOCHA_API_KEY=... 再重跑本脚本即可。")
@@ -178,7 +180,14 @@ def prewarm_search_case() -> bool:
         print(f"\n=== 预热 AI 联网检索案例（query: {query}）===")
         try:
             found = search_client.search(query)  # JD 通道：博查 API + 写穿缓存
-            # 舆情通道（与演示链路同口径）：失败只降级为 none，不阻断预热
+            # 面经通道 + 舆情通道（与演示链路同口径）：失败只降级，不阻断预热
+            insider_results = None
+            try:
+                insider = search_client.search(search_client.build_insider_query(query))
+                insider_results = insider["results"]
+                print(f"  面经通道：{len(insider['urls'])} 条真实门槛摘要已缓存")
+            except Exception as exc:
+                print(f"  ⚠️ 面经通道降级（不影响 JD 主链路）: {exc}")
             opinion_results = None
             try:
                 opinion = search_client.search(search_client.build_opinion_query(query))
@@ -186,12 +195,17 @@ def prewarm_search_case() -> bool:
                 print(f"  舆情通道：{len(opinion['urls'])} 条小红书/知乎摘要已缓存")
             except Exception as exc:
                 print(f"  ⚠️ 舆情通道降级（不影响 JD 主链路）: {exc}")
-            combined = search_client.synthesize_combined(query, found["results"], opinion_results)
+            combined = search_client.synthesize_combined(
+                query, found["results"], opinion_results, insider_results)
             job = job_analyzer.analyze_job(jd_text=combined)  # LLM：job_extract
+            n_infer = sum(1 for ab in job["abilities"]
+                          if ab.get("source_type") == "expert_inference")
             n_intel = sum(1 for ab in job["abilities"]
-                          if ab.get("source_type", "jd_requirement") != "jd_requirement")
+                          if ab.get("source_type", "jd_requirement")
+                          not in ("jd_requirement", "expert_inference"))
             print(f"  ✅ 检索 {len(found['urls'])} 个 JD 来源，抽取岗位「{job['job_title']}」，"
-                  f"{len(job['abilities'])} 项指标（含 {n_intel} 项环境情报）——断网演示已就绪")
+                  f"{len(job['abilities'])} 项指标（含 {n_infer} 项隐性门槛推断、"
+                  f"{n_intel} 项环境情报）——断网演示已就绪")
         except Exception as exc:  # 保险丝：任何异常都只警告
             print(f"  ⚠️ 检索案例预热失败（不影响三案例）: {exc}")
             ok = False
